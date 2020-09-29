@@ -1,0 +1,16 @@
+{
+  "name": "Compiler",
+  "version": "1.0.0",
+  "description": "labwork",
+  "main": "Main.js",
+  "bin": "Main.js",
+  "author": "Andrew Yushchenko",
+  "license": "ISC",
+  "pkg": {
+    "scripts": "./*.js",
+    "targets": [
+      "node10-linux-x64",
+      "node10-win-x64"
+    ]
+  }
+}
