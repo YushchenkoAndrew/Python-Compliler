@@ -1,5 +1,5 @@
 def main():
-    return "Hello world!"
+    return 5 + 1 * ~~~~-2 / 3
 
 
 main()

@@ -1,3 +1,4 @@
+
 .386
 .model flat, stdcall
 option casemap:none
@@ -12,11 +13,10 @@ includelib \masm32\lib\user32.lib
 NumToStr PROTO :DWORD,:DWORD
 main PROTO
 .const
-VALUE dd 1
+
 .data
 Caption db "Program", 0
 Output db 11 dup(?), 0
-TEMP65 db "Hello world!", 0
 
 .code
 NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
@@ -40,12 +40,10 @@ NumToStr ENDP
 
 
 main PROC
-	MOV EAX, offset [TEMP65] 
 	RET
 main ENDP
 
 start:
 	invoke main
-	invoke MessageBoxA, 0, ADDR [EAX], ADDR Caption, 0
 	invoke ExitProcess, 0
 end start

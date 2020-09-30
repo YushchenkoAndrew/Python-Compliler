@@ -4,7 +4,7 @@ class Generator {
   constructor(syntaxTree) {
     console.log("\x1b[34m", "\n~ Start Code Generator:", "\x1b[0m");
 
-    this.keys = ["Declaration", "Statement", "Extension"];
+    this.keys = ["Declaration", "Statement", "Expression"];
     this.regs = { available: ["EDX", "ECX", "EBX", "EAX"], inUse: [] };
 
     this.syntaxTree = syntaxTree;
@@ -57,7 +57,7 @@ class Generator {
       case "Statement": {
         console.log("\t=> Created: " + name);
 
-        this.redirect("Extension", tree.Extension);
+        this.redirect("Expression", tree.Expression);
 
         this.regs.available.push(this.regs.inUse.pop());
 
@@ -66,7 +66,7 @@ class Generator {
         break;
       }
 
-      case "Extension": {
+      case "Expression": {
         console.log("\t=> Created: " + name);
 
         let reg = this.regs.available.pop();

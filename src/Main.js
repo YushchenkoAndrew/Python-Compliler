@@ -3,7 +3,8 @@ const Parser = module.require("./Parser");
 const Generator = module.require("./CodeGenerator");
 
 function main() {
-  let lexing = new Lexing("1-26-NodeJS-IO-82-Yushchenko-Andrew.txt");
+  // let lexing = new Lexing("1-26-NodeJS-IO-82-Yushchenko-Andrew.txt");
+  let lexing = new Lexing("./SourceCode/Test.py");
   lexing.defineTokens();
   // lexing.showTable();
 
@@ -11,7 +12,8 @@ function main() {
   parser.startParser();
 
   let generator = new Generator(parser.getTree());
-  generator.start("1-26-NodeJS-IO-82-Yushchenko-Andrew.asm");
+  // generator.start("1-26-NodeJS-IO-82-Yushchenko-Andrew.asm");
+  generator.start("./SourceCode/Test.asm");
 
   console.log("Done");
 }

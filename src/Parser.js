@@ -54,14 +54,36 @@ class Parser {
       throw Error(`Return is not define. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
 
     let { type } = this.tokens[this.index];
-    if (!type.includes("Number") && !type.includes("Char") && !type.includes("String"))
+    if (!type.includes("Number") && !type.includes("Char") && !type.includes("String") && !type.includes("Unary"))
       throw Error(`Type error. Error in line ${this.tokens[this.index].line}, col ${this.tokens[this.index].char}`);
 
-    return { Extension: this.parseExtension() };
+    return { Expression: this.parseExpression() };
   }
 
-  parseExtension() {
-    let { value, type } = this.tokens[this.index];
+  parseExpression(params = {}, priority) {
+    let { type } = this.tokens[this.index];
+
+    switch (type.split(/\ /g)[1] || type) {
+      case "String":
+      case "Char":
+      case "Number":
+        if (!priority) return this.parseExpression(this.parseConstExpression());
+        else return this.parseConstExpression();
+
+      case "Unary":
+        if (!params.type) return this.parseUnaryExpression(priority);
+
+      case "Operator":
+        // console.log("Heeeeeeeeeeeeeeeeyyyyy");
+        // console.log(params);
+        return this.parserOperatorExpression(params);
+    }
+
+    return params;
+  }
+
+  parseConstExpression() {
+    let { value, type } = this.tokens[this.index++];
 
     // Type converting
     switch (type.split(/\ /g)[0] || type) {
@@ -93,7 +115,33 @@ class Parser {
         return { value: value, type: "STR" };
     }
 
-    throw Error(`Convert Type Error. Error in line ${this.tokens[this.index].line}, col ${this.tokens[this.index].char}`);
+    throw Error(`Convert Type Error. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
+  }
+
+  parseUnaryExpression(priority) {
+    let { value, type } = this.tokens[this.index++];
+
+    if (!priority) return this.parseExpression({ type: "Unary Operator", value: value, exp: this.parseExpression({}, true) }, priority);
+    else return { type: "Unary Operator", value: value, exp: this.parseExpression({}, true) };
+  }
+
+  parserOperatorExpression(params) {
+    let { value, type } = this.tokens[this.index++];
+
+    // Check if left is not an empty Object, else it's an Error!
+    if (!params.type) throw Error("Error!!!");
+
+    switch (type.split(/\ /g)[0] || type) {
+      case "Div":
+      case "Mult":
+        return this.parseExpression({ type: "Binary Operation", value: value, left: params, right: this.parseExpression({}, true) });
+    }
+
+    // if (priority.type) {
+    //   priority.right = params;
+    //   return { type: "Binary Operation", value: value, left: priority, right: this.parseExpression() };
+    // }
+    return { type: "Binary Operation", value: value, left: params, right: this.parseExpression() };
   }
 
   getTree() {
