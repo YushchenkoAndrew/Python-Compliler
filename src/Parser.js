@@ -53,30 +53,50 @@ class Parser {
     if (this.tokens[this.index++].type != "Return Keyword")
       throw Error(`Return is not define. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
 
-    let { type } = this.tokens[this.index];
-    if (!type.includes("Number") && !type.includes("Char") && !type.includes("String") && !type.includes("Unary"))
+    if (!isInclude(this.tokens[this.index], "Number", "Char", "String", "Unary", "Parentheses"))
       throw Error(`Type error. Error in line ${this.tokens[this.index].line}, col ${this.tokens[this.index].char}`);
 
     return { Expression: this.parseExpression() };
+
+    // Additional func
+
+    function isInclude({ type }, ...arr) {
+      for (let i of arr) if (type.includes(i)) return true;
+      return false;
+    }
   }
 
-  parseExpression(params = {}, priority) {
-    let { type } = this.tokens[this.index];
+  parseExpression(params = {}, priority = false) {
+    let { type } = this.tokens[this.index] || { type: "" };
 
     switch (type.split(/\ /g)[1] || type) {
       case "String":
       case "Char":
       case "Number":
+        // Check if priority is important, if not then parser next
+        //    else return the value
         if (!priority) return this.parseExpression(this.parseConstExpression());
         else return this.parseConstExpression();
 
       case "Unary":
+        // Check if prev value is an another exp, if not then "-" is a Unary Operation
+        //    else Binary Operation
         if (!params.type) return this.parseUnaryExpression(priority);
 
       case "Operator":
-        // console.log("Heeeeeeeeeeeeeeeeyyyyy");
-        // console.log(params);
         return this.parserOperatorExpression(params);
+
+      case "Parentheses":
+        this.index++;
+        // Check if it Open Parentheses, if so then check next element
+        //    else if it Close, then return created value
+        if (type.includes("Open")) {
+          // Check if priority is important, if not then parser next
+          //    else return the value in a Parentheses
+          if (!priority) return this.parseExpression(this.parseExpression());
+          else return this.parseExpression();
+        } else if (!params.type) throw Error("Error2!!!");
+        else return params;
     }
 
     return params;
@@ -132,6 +152,7 @@ class Parser {
     if (!params.type) throw Error("Error!!!");
 
     switch (type.split(/\ /g)[0] || type) {
+      case "Power":
       case "Div":
       case "Mult":
         return this.parseExpression({ type: "Binary Operation", value: value, left: params, right: this.parseExpression({}, true) });
