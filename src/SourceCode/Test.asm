@@ -13,7 +13,8 @@ includelib \masm32\lib\user32.lib
 NumToStr PROTO :DWORD,:DWORD
 main PROTO
 .const
-
+VALUE dd 10
+VALUE dd 10
 .data
 Caption db "Program", 0
 Output db 11 dup(?), 0
@@ -40,10 +41,16 @@ NumToStr ENDP
 
 
 main PROC
+	MOV EAX, 02
+	MOV EBX, 03
 	RET
 main ENDP
 
 start:
 	invoke main
+	invoke NumToStr, EAX, ADDR Output
+	invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0
+	invoke NumToStr, EBX, ADDR Output
+	invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0
 	invoke ExitProcess, 0
 end start

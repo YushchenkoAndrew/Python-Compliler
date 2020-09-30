@@ -73,10 +73,15 @@ class Parser {
       case "String":
       case "Char":
       case "Number":
+        let constant = this.parseConstExpression();
+        this.prevType = this.prevType || constant.type;
+        if (constant.type != this.prevType)
+          throw Error(`Wrong arithmetic type. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
+
         // Check if priority is important, if not then parser next
-        //    else return the value
-        if (!priority) return this.parseExpression(this.parseConstExpression());
-        else return this.parseConstExpression();
+        //    else return the const
+        if (!priority) return this.parseExpression(constant);
+        else return constant;
 
       case "Unary":
         // Check if prev value is an another exp, if not then "-" is a Unary Operation
@@ -141,7 +146,7 @@ class Parser {
   parseUnaryExpression(priority) {
     let { value, type } = this.tokens[this.index++];
 
-    if (!priority) return this.parseExpression({ type: "Unary Operator", value: value, exp: this.parseExpression({}, true) }, priority);
+    if (!priority) return this.parseExpression({ type: "Unary Operation", value: value, exp: this.parseExpression({}, true) }, priority);
     else return { type: "Unary Operator", value: value, exp: this.parseExpression({}, true) };
   }
 

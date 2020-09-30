@@ -67,39 +67,26 @@ class Generator {
       }
 
       case "Expression": {
-        console.log("\t=> Created: " + name);
-
-        let reg = this.regs.available.pop();
-        this.regs.inUse.push(reg);
+        // console.log("\t=> Created: " + name);
 
         switch (tree.type) {
-          case "CHAR": {
-            this.stack.push(`MOV ${reg}, ${tree.value}`);
-            this.code.start.push(`MOV DWORD ptr [Output], ${reg}`);
-
-            this.code.const.push(`VALUE dd 1`);
-            this.code.start.push("invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0");
+          case "STR":
+          case "CHAR":
+          case "INT":
+            console.log(tree);
+            this.constExpression(tree);
             break;
-          }
 
-          case "INT": {
-            this.stack.push(`MOV ${reg}, 0${tree.value}`);
-            this.code.start.push(`invoke NumToStr, ${reg}, ADDR Output`);
-
-            this.code.const.push(`VALUE dd ${tree.kind}`);
-            this.code.start.push("invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0");
+          case "Binary Operation":
+            this.redirect(name, tree.left);
+            this.redirect(name, tree.right);
+            this.binaryOperation(tree);
             break;
-          }
 
-          case "STR": {
-            let name = "TEMP" + parseInt(Math.random() * 100);
-            this.code.data.push(`${name} db "${tree.value}", 0`);
-            this.stack.push(`MOV ${reg}, offset [${name}] `);
-
-            this.code.const.push(`VALUE dd 1`);
-            this.code.start.push(`invoke MessageBoxA, 0, ADDR [${reg}], ADDR Caption, 0`);
+          case "Unary Operation":
+            this.redirect(name, tree.exp);
+            this.unaryOperation(tree);
             break;
-          }
         }
 
         break;
@@ -108,6 +95,49 @@ class Generator {
       default:
         console.log("\nFailed: " + name);
     }
+  }
+
+  constExpression(tree) {
+    let reg = this.regs.available.pop();
+    this.regs.inUse.push(reg);
+
+    switch (tree.type) {
+      case "CHAR": {
+        this.stack.push(`MOV ${reg}, ${tree.value}`);
+        this.code.start.push(`MOV DWORD ptr [Output], ${reg}`);
+
+        this.code.const.push(`VALUE dd 1`);
+        this.code.start.push("invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0");
+        break;
+      }
+
+      case "INT": {
+        this.stack.push(`MOV ${reg}, 0${tree.value}`);
+        this.code.start.push(`invoke NumToStr, ${reg}, ADDR Output`);
+
+        this.code.const.push(`VALUE dd ${tree.kind}`);
+        this.code.start.push("invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0");
+        break;
+      }
+
+      case "STR": {
+        let name = "TEMP" + parseInt(Math.random() * 100);
+        this.code.data.push(`${name} db "${tree.value}", 0`);
+        this.stack.push(`MOV ${reg}, offset [${name}] `);
+
+        this.code.const.push(`VALUE dd 1`);
+        this.code.start.push(`invoke MessageBoxA, 0, ADDR [${reg}], ADDR Caption, 0`);
+        break;
+      }
+    }
+  }
+
+  binaryOperation({ type, value }) {
+    console.log({ type: type, value: value });
+  }
+
+  unaryOperation({ type, value }) {
+    console.log({ type: type, value: value });
   }
 }
 module.exports = Generator;
