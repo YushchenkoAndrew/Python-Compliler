@@ -15,6 +15,7 @@ main PROTO
 .const
 VALUE dd 10
 VALUE dd 10
+VALUE dd 10
 .data
 Caption db "Program", 0
 Output db 11 dup(?), 0
@@ -41,16 +42,19 @@ NumToStr ENDP
 
 
 main PROC
-	MOV EAX, 02
-	MOV EBX, 03
+	MOV undefined, 02
+	MOV undefined, 03
+	MOV undefined, 01
 	RET
 main ENDP
 
 start:
 	invoke main
-	invoke NumToStr, EAX, ADDR Output
+	invoke NumToStr, undefined, ADDR Output
 	invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0
-	invoke NumToStr, EBX, ADDR Output
+	invoke NumToStr, undefined, ADDR Output
+	invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0
+	invoke NumToStr, undefined, ADDR Output
 	invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0
 	invoke ExitProcess, 0
 end start

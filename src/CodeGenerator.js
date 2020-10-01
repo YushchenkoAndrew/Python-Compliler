@@ -57,9 +57,18 @@ class Generator {
       case "Statement": {
         console.log("\t=> Created: " + name);
 
+        console.log();
+
+        this.regs.inUse.push(this.regs.available.pop());
         this.redirect("Expression", tree.Expression);
 
-        this.regs.available.push(this.regs.inUse.pop());
+        console.log();
+
+        let reg = this.regs.inUse.pop();
+        this.regs.available.push(reg);
+        console.log(`POP ${reg}`);
+
+        console.log();
 
         this.stack.push("RET");
 
@@ -73,14 +82,24 @@ class Generator {
           case "STR":
           case "CHAR":
           case "INT":
-            console.log(tree);
-            this.constExpression(tree);
-            break;
+            // console.log(tree);
+            return this.constExpression(tree);
 
           case "Binary Operation":
+            // reg MOV approach
+            // this.regs.inUse.push({ name: this.regs.available.pop() });
+            // let exp = this.redirect(name, tree.left);
             this.redirect(name, tree.left);
             this.redirect(name, tree.right);
+            // let value = this.redirect(name, tree.right) || exp;
+
+            // TODO: Create swap func
+            // if (exp) this.swapReg(this.regs.inUse.slice(-1)[0].name, exp);
+
+            // FIXME: Fix bug with exp: (...) - (...)
             this.binaryOperation(tree);
+
+            // return this.regs.inUse.pop().name;
             break;
 
           case "Unary Operation":
@@ -98,8 +117,9 @@ class Generator {
   }
 
   constExpression(tree) {
-    let reg = this.regs.available.pop();
-    this.regs.inUse.push(reg);
+    // let reg = this.regs.available.pop();
+    // this.regs.inUse.push(reg);
+    let reg = this.regs.inUse.slice(-1)[0];
 
     switch (tree.type) {
       case "CHAR": {
@@ -112,8 +132,15 @@ class Generator {
       }
 
       case "INT": {
-        this.stack.push(`MOV ${reg}, 0${tree.value}`);
-        this.code.start.push(`invoke NumToStr, ${reg}, ADDR Output`);
+        // Using MOV approach
+        // if (reg.define) return `0${tree.value}`;
+        // reg.define = true;
+        // console.log(`MOV ${reg.name}, 0${tree.value}`);
+
+        console.log(`PUSH 0${tree.value} `);
+
+        this.stack.push(`MOV ${reg.name}, 0${tree.value}`);
+        this.code.start.push(`invoke NumToStr, ${reg.name}, ADDR Output`);
 
         this.code.const.push(`VALUE dd ${tree.kind}`);
         this.code.start.push("invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0");
@@ -132,8 +159,39 @@ class Generator {
     }
   }
 
-  binaryOperation({ type, value }) {
-    console.log({ type: type, value: value });
+  binaryOperation({ value }, exp) {
+    // console.log({ type: type, value: value, exp: exp });
+    let regs = this.regs.available.slice(-2);
+    console.log(`POP ${regs[1]}`);
+    console.log(`POP ${regs[0]}`);
+
+    switch (value) {
+      case "-":
+        console.log(`SUB ${regs[0]}, ${regs[1]}`);
+        console.log(`PUSH ${regs[0]}`);
+        // console.log(`SUB ${reg.name}, ${exp} `);
+        // this.stack.push(`SUB ${reg.name}, ${exp} `);
+        break;
+
+      case "+":
+        console.log(`ADD ${regs[0]}, ${regs[1]}`);
+        console.log(`PUSH ${regs[0]}`);
+        // console.log(`ADD ${reg.name}, ${exp} `);
+        // this.stack.push(`ADD ${reg.name}, ${exp} `);
+        break;
+
+      case "*":
+        console.log(`MOV EAX, ${regs[0]}`);
+        console.log(`MUL ${regs[1]}`);
+        console.log(`PUSH EAX`);
+        break;
+
+      case "/":
+        console.log(`MOV EAX, ${regs[0]}`);
+        console.log(`DIV ${regs[1]}`);
+        console.log(`PUSH EAX`);
+        break;
+    }
   }
 
   unaryOperation({ type, value }) {

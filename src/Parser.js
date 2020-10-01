@@ -161,7 +161,31 @@ class Parser {
       case "Power":
       case "Div":
       case "Mult":
+        // FIXME: a bag with negative operation
+        // case "Neg":
         return this.parseExpression({ type: "Binary Operation", value: value, left: params, right: this.parseExpression({}, true) });
+
+      // case "Neg":
+      //   // console.log(params);
+      //   if (!this.negative) {
+      //     this.negative = true;
+
+      //     // console.log(params);
+      //     // console.log(temp);
+
+      //     let exp = { type: "Binary Operation", value: value, left: params, right: this.parseExpression() };
+
+      //     if (!this.negative) return { type: "Binary Operation", value: value, left: exp, right: this.parseExpression() };
+
+      //     return exp;
+      //     // break;
+
+      //     // return { type: "Binary Operation", value: value, left: params, right: this.parseExpression() };
+      //   } else {
+      //     this.negative = false;
+      //     return params;
+      //   }
+      // return
     }
 
     return { type: "Binary Operation", value: value, left: params, right: this.parseExpression() };
