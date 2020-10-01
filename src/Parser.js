@@ -100,7 +100,8 @@ class Parser {
           //    else return the value in a Parentheses
           if (!priority) return this.parseExpression(this.parseExpression());
           else return this.parseExpression();
-        } else if (!params.type) throw Error("Error2!!!");
+        } else if (!params.type)
+          throw Error(`Wrong arithmetic style. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
         else return params;
     }
 
@@ -163,10 +164,6 @@ class Parser {
         return this.parseExpression({ type: "Binary Operation", value: value, left: params, right: this.parseExpression({}, true) });
     }
 
-    // if (priority.type) {
-    //   priority.right = params;
-    //   return { type: "Binary Operation", value: value, left: priority, right: this.parseExpression() };
-    // }
     return { type: "Binary Operation", value: value, left: params, right: this.parseExpression() };
   }
 
