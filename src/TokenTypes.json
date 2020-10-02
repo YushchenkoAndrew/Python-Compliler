@@ -9,8 +9,6 @@
   "(": "Open Parentheses",
   ")": "Close Parentheses",
   "=": "Assignment Operator",
-  "++": "Increment Operator",
-  "--": "Decrement Operator",
   "**": "Power Operator",
   "+=": "Assignment Operator",
   "-=": "Assignment Operator",

@@ -157,7 +157,7 @@ class Parser {
 
     if (!priority)
       return this.parseExpression({ params: { type: "Unary Operation", value: value, exp: this.parseExpression({ priority: true, sign: sign }) }, sign: sign });
-    else return { type: "Unary Operator", value: value, exp: this.parseExpression({ priority: true, sign: sign }) };
+    else return { type: "Unary Operation", value: value, exp: this.parseExpression({ priority: true, sign: sign }) };
   }
 
   parserOperatorExpression(params, sign) {

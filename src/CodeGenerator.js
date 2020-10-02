@@ -56,19 +56,14 @@ class Generator {
 
       case "Statement": {
         console.log("\t=> Created: " + name);
-
-        console.log();
+        this.defineType = false;
 
         this.regs.inUse.push(this.regs.available.pop());
         this.redirect("Expression", tree.Expression);
 
-        console.log();
-
         let reg = this.regs.inUse.pop();
         this.regs.available.push(reg);
-        console.log(`POP ${reg}`);
-
-        console.log();
+        this.stack.push(`POP ${reg}`);
 
         this.stack.push("RET");
 
@@ -76,30 +71,20 @@ class Generator {
       }
 
       case "Expression": {
-        // console.log("\t=> Created: " + name);
-
         switch (tree.type) {
           case "STR":
           case "CHAR":
           case "INT":
-            // console.log(tree);
+            if (!this.defineType) {
+              this.defineType = true;
+              this.setOutput(tree, this.regs.inUse.slice(-1)[0]);
+            }
             return this.constExpression(tree);
 
           case "Binary Operation":
-            // reg MOV approach
-            // this.regs.inUse.push({ name: this.regs.available.pop() });
-            // let exp = this.redirect(name, tree.left);
             this.redirect(name, tree.left);
             this.redirect(name, tree.right);
-            // let value = this.redirect(name, tree.right) || exp;
-
-            // TODO: Create swap func
-            // if (exp) this.swapReg(this.regs.inUse.slice(-1)[0].name, exp);
-
-            // FIXME: Fix bug with exp: (...) - (...)
             this.binaryOperation(tree);
-
-            // return this.regs.inUse.pop().name;
             break;
 
           case "Unary Operation":
@@ -116,86 +101,99 @@ class Generator {
     }
   }
 
-  constExpression(tree) {
-    // let reg = this.regs.available.pop();
-    // this.regs.inUse.push(reg);
-    let reg = this.regs.inUse.slice(-1)[0];
+  setOutput({ type, kind = 1 }, reg) {
+    console.log("\t=> Created: Expression");
+    this.code.const.push(`VALUE dd ${kind}`);
 
-    switch (tree.type) {
+    switch (type) {
       case "CHAR": {
-        this.stack.push(`MOV ${reg}, ${tree.value}`);
         this.code.start.push(`MOV DWORD ptr [Output], ${reg}`);
-
-        this.code.const.push(`VALUE dd 1`);
         this.code.start.push("invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0");
         break;
       }
 
       case "INT": {
-        // Using MOV approach
-        // if (reg.define) return `0${tree.value}`;
-        // reg.define = true;
-        // console.log(`MOV ${reg.name}, 0${tree.value}`);
-
-        console.log(`PUSH 0${tree.value} `);
-
-        this.stack.push(`MOV ${reg.name}, 0${tree.value}`);
-        this.code.start.push(`invoke NumToStr, ${reg.name}, ADDR Output`);
-
-        this.code.const.push(`VALUE dd ${tree.kind}`);
+        this.code.start.push(`invoke NumToStr, ${reg}, ADDR Output`);
         this.code.start.push("invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0");
         break;
       }
 
       case "STR": {
-        let name = "TEMP" + parseInt(Math.random() * 100);
-        this.code.data.push(`${name} db "${tree.value}", 0`);
-        this.stack.push(`MOV ${reg}, offset [${name}] `);
-
-        this.code.const.push(`VALUE dd 1`);
         this.code.start.push(`invoke MessageBoxA, 0, ADDR [${reg}], ADDR Caption, 0`);
         break;
       }
     }
   }
 
-  binaryOperation({ value }, exp) {
-    // console.log({ type: type, value: value, exp: exp });
-    let regs = this.regs.available.slice(-2);
-    console.log(`POP ${regs[1]}`);
-    console.log(`POP ${regs[0]}`);
+  constExpression(tree) {
+    let reg = this.regs.inUse.slice(-1)[0];
 
-    switch (value) {
-      case "-":
-        console.log(`SUB ${regs[0]}, ${regs[1]}`);
-        console.log(`PUSH ${regs[0]}`);
-        // console.log(`SUB ${reg.name}, ${exp} `);
-        // this.stack.push(`SUB ${reg.name}, ${exp} `);
+    switch (tree.type) {
+      case "CHAR":
+      case "INT":
+        this.stack.push(`PUSH 0${tree.value} `);
         break;
 
-      case "+":
-        console.log(`ADD ${regs[0]}, ${regs[1]}`);
-        console.log(`PUSH ${regs[0]}`);
-        // console.log(`ADD ${reg.name}, ${exp} `);
-        // this.stack.push(`ADD ${reg.name}, ${exp} `);
-        break;
-
-      case "*":
-        console.log(`MOV EAX, ${regs[0]}`);
-        console.log(`MUL ${regs[1]}`);
-        console.log(`PUSH EAX`);
-        break;
-
-      case "/":
-        console.log(`MOV EAX, ${regs[0]}`);
-        console.log(`DIV ${regs[1]}`);
-        console.log(`PUSH EAX`);
+      case "STR":
+        let name = "TEMP" + parseInt(Math.random() * 100);
+        this.code.data.push(`${name} db "${tree.value}", 0`);
+        this.stack.push(`PUSH offset [${name}] `);
         break;
     }
   }
 
-  unaryOperation({ type, value }) {
-    console.log({ type: type, value: value });
+  binaryOperation({ value }) {
+    let regs = this.regs.available.slice(-2);
+    this.stack.push(`POP ${regs[1]}`);
+    this.stack.push(`POP ${regs[0]}`);
+
+    switch (value) {
+      case "-":
+        this.stack.push(`SUB ${regs[0]}, ${regs[1]}`);
+        this.stack.push(`PUSH ${regs[0]}`);
+        break;
+
+      case "+":
+        this.stack.push(`ADD ${regs[0]}, ${regs[1]}`);
+        this.stack.push(`PUSH ${regs[0]}`);
+        break;
+
+      case "*":
+        this.stack.push(`MOV EAX, ${regs[0]}`);
+        this.stack.push(`MUL ${regs[1]}`);
+        this.stack.push(`PUSH EAX`);
+        break;
+
+      case "/":
+        this.stack.push(`MOV EAX, ${regs[0]}`);
+        this.stack.push(`DIV ${regs[1]}`);
+        this.stack.push(`PUSH EAX`);
+        break;
+    }
+  }
+
+  unaryOperation({ value }) {
+    // console.log({ type: type, value: value });
+    let reg = this.regs.available.slice(-1)[0];
+    this.stack.push(`POP ${reg}`);
+
+    switch (value) {
+      case "-":
+        this.stack.push(`NEG ${reg}`);
+        break;
+
+      case "~":
+        this.stack.push(`XOR ${reg}, 0FFFFFFFFH`);
+        break;
+
+      case "not":
+        this.stack.push(`CMP ${reg}, 00H`);
+        this.stack.push(`SETE ${reg[1]}L`); // Set value only in low byte (example: "AL")
+        this.stack.push(`AND ${reg}, 0FFH`); // Save only last byte (example: "AL")
+        break;
+    }
+
+    this.stack.push(`PUSH ${reg}`);
   }
 }
 module.exports = Generator;
