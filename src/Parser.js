@@ -4,7 +4,7 @@ class Parser {
 
     this.tokens = [...tokens];
     this.syntaxTree = {};
-    // this.negative = 0;
+    this.parenthesesCounter = 0;
   }
 
   startParser() {
@@ -13,6 +13,13 @@ class Parser {
 
     try {
       this.syntaxTree = { type: "Program", body: [{ Declaration: this.parseDeclaration() }] };
+
+      if (this.parenthesesCounter)
+        throw Error(
+          `Missed ${this.parenthesesCounter > 0 ? "Closing" : "Opening"} Parentheses. Error in line ${this.tokens[this.index - 1].line}, col ${
+            this.tokens[this.index - 1].char
+          }`
+        );
     } catch (err) {
       console.log("\x1b[31m", `~ Error:\n\t${err.message}`, "\x1b[0m");
       this.syntaxTree = undefined;
@@ -104,13 +111,17 @@ class Parser {
         // Check if it Open Parentheses, if so then check next element
         //    else if it Close, then return created value
         if (type.includes("Open")) {
+          this.parenthesesCounter++;
           // Check if priority is important, if not then parser next
           //    else return the value in a Parentheses
           if (!priority) return this.parseExpression({ params: this.parseExpression({}), sign: sign });
           else return this.parseExpression({});
-        } else if (!params.type)
+        } else if (!params.type) {
           throw Error(`Wrong arithmetic style. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
-        else return params;
+        } else {
+          this.parenthesesCounter--;
+          return params;
+        }
     }
 
     return params;
