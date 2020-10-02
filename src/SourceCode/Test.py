@@ -1,5 +1,5 @@
 def main():
-    return 2 - 3 - 1
+    return 15 + 1 - (2 + 3) - -(2 - 2 + 1)
 
 
 main()

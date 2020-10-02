@@ -4,6 +4,7 @@ class Parser {
 
     this.tokens = [...tokens];
     this.syntaxTree = {};
+    // this.negative = 0;
   }
 
   startParser() {
@@ -56,7 +57,7 @@ class Parser {
     if (!isInclude(this.tokens[this.index], "Number", "Char", "String", "Unary", "Parentheses"))
       throw Error(`Type error. Error in line ${this.tokens[this.index].line}, col ${this.tokens[this.index].char}`);
 
-    return { Expression: this.parseExpression() };
+    return { Expression: this.parseExpression({}) };
 
     // Additional func
 
@@ -66,7 +67,14 @@ class Parser {
     }
   }
 
-  parseExpression(params = {}, priority = false) {
+  /**
+   *
+   * @param {*} param0
+   * @param params   --   Previous param
+   * @param priority --   priority is important
+   * @param sign     --   is NegSign out of parentheses
+   */
+  parseExpression({ params = {}, priority = false, sign = false }) {
     let { type } = this.tokens[this.index] || { type: "" };
 
     switch (type.split(/\ /g)[1] || type) {
@@ -80,16 +88,16 @@ class Parser {
 
         // Check if priority is important, if not then parser next
         //    else return the const
-        if (!priority) return this.parseExpression(constant);
+        if (!priority) return this.parseExpression({ params: constant, sign: sign });
         else return constant;
 
       case "Unary":
         // Check if prev value is an another exp, if not then "-" is a Unary Operation
         //    else Binary Operation
-        if (!params.type) return this.parseUnaryExpression(priority);
+        if (!params.type) return this.parseUnaryExpression(priority, sign);
 
       case "Operator":
-        return this.parserOperatorExpression(params);
+        return this.parserOperatorExpression(params, sign);
 
       case "Parentheses":
         this.index++;
@@ -98,8 +106,8 @@ class Parser {
         if (type.includes("Open")) {
           // Check if priority is important, if not then parser next
           //    else return the value in a Parentheses
-          if (!priority) return this.parseExpression(this.parseExpression());
-          else return this.parseExpression();
+          if (!priority) return this.parseExpression({ params: this.parseExpression({}), sign: sign });
+          else return this.parseExpression({});
         } else if (!params.type)
           throw Error(`Wrong arithmetic style. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
         else return params;
@@ -144,14 +152,15 @@ class Parser {
     throw Error(`Convert Type Error. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
   }
 
-  parseUnaryExpression(priority) {
+  parseUnaryExpression(priority, sign) {
     let { value, type } = this.tokens[this.index++];
 
-    if (!priority) return this.parseExpression({ type: "Unary Operation", value: value, exp: this.parseExpression({}, true) }, priority);
-    else return { type: "Unary Operator", value: value, exp: this.parseExpression({}, true) };
+    if (!priority)
+      return this.parseExpression({ params: { type: "Unary Operation", value: value, exp: this.parseExpression({ priority: true, sign: sign }) }, sign: sign });
+    else return { type: "Unary Operator", value: value, exp: this.parseExpression({ priority: true, sign: sign }) };
   }
 
-  parserOperatorExpression(params) {
+  parserOperatorExpression(params, sign) {
     let { value, type } = this.tokens[this.index++];
 
     // Check if left is not an empty Object, else it's an Error!
@@ -163,32 +172,26 @@ class Parser {
       case "Mult":
         // FIXME: a bag with negative operation
         // case "Neg":
-        return this.parseExpression({ type: "Binary Operation", value: value, left: params, right: this.parseExpression({}, true) });
+        return this.parseExpression({
+          params: { type: "Binary Operation", value: value, left: params, right: this.parseExpression({ priority: true, sign: sign }) },
+          sign: sign,
+        });
 
-      // case "Neg":
-      //   // console.log(params);
-      //   if (!this.negative) {
-      //     this.negative = true;
+      case "Neg":
+        if (sign) value = "+";
+        else sign ^= true;
+        break;
 
-      //     // console.log(params);
-      //     // console.log(temp);
+      case "Add":
+        if (sign) {
+          value = "-";
+          sign ^= true;
+        }
 
-      //     let exp = { type: "Binary Operation", value: value, left: params, right: this.parseExpression() };
-
-      //     if (!this.negative) return { type: "Binary Operation", value: value, left: exp, right: this.parseExpression() };
-
-      //     return exp;
-      //     // break;
-
-      //     // return { type: "Binary Operation", value: value, left: params, right: this.parseExpression() };
-      //   } else {
-      //     this.negative = false;
-      //     return params;
-      //   }
-      // return
+        break;
     }
 
-    return { type: "Binary Operation", value: value, left: params, right: this.parseExpression() };
+    return { type: "Binary Operation", value: value, left: params, right: this.parseExpression({ sign: sign }) };
   }
 
   getTree() {

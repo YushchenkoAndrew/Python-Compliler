@@ -16,6 +16,10 @@ main PROTO
 VALUE dd 10
 VALUE dd 10
 VALUE dd 10
+VALUE dd 10
+VALUE dd 10
+VALUE dd 10
+VALUE dd 10
 .data
 Caption db "Program", 0
 Output db 11 dup(?), 0
@@ -42,14 +46,26 @@ NumToStr ENDP
 
 
 main PROC
+	MOV undefined, 015
+	MOV undefined, 01
 	MOV undefined, 02
 	MOV undefined, 03
+	MOV undefined, 02
+	MOV undefined, 02
 	MOV undefined, 01
 	RET
 main ENDP
 
 start:
 	invoke main
+	invoke NumToStr, undefined, ADDR Output
+	invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0
+	invoke NumToStr, undefined, ADDR Output
+	invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0
+	invoke NumToStr, undefined, ADDR Output
+	invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0
+	invoke NumToStr, undefined, ADDR Output
+	invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0
 	invoke NumToStr, undefined, ADDR Output
 	invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0
 	invoke NumToStr, undefined, ADDR Output
