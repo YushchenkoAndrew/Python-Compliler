@@ -176,8 +176,6 @@ class Parser {
       case "Power":
       case "Div":
       case "Mult":
-        // FIXME: a bag with negative operation
-        // case "Neg":
         return this.parseExpression({
           params: { type: "Binary Operation", value: value, left: params, right: this.parseExpression({ priority: true, sign: sign }) },
           sign: sign,
@@ -193,7 +191,6 @@ class Parser {
           value = "-";
           sign ^= true;
         }
-
         break;
     }
 
