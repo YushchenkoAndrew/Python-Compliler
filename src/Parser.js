@@ -15,11 +15,7 @@ class Parser {
       this.syntaxTree = { type: "Program", body: [{ Declaration: this.parseDeclaration() }] };
 
       if (this.parenthesesCounter)
-        throw Error(
-          `Missed ${this.parenthesesCounter > 0 ? "Closing" : "Opening"} Parentheses. Error in line ${this.tokens[this.index - 1].line}, col ${
-            this.tokens[this.index - 1].char
-          }`
-        );
+        this.errorMessageHandler(`Missed ${this.parenthesesCounter > 0 ? "Closing" : "Opening"} Parentheses`, this.tokens[this.index - 1]);
     } catch (err) {
       console.log("\x1b[31m", `~ Error:\n\t${err.message}`, "\x1b[0m");
       this.syntaxTree = undefined;
@@ -31,20 +27,21 @@ class Parser {
     return this.syntaxTree;
   }
 
+  errorMessageHandler(message, { line, char }) {
+    throw Error(`${message}. Error in line ${line}, col ${char}`);
+  }
+
   parseDeclaration() {
-    if (this.tokens[this.index++].type != "Function Keyword")
-      throw Error(`Start Function not define. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
+    if (this.tokens[this.index++].type != "Function Keyword") this.errorMessageHandler(`Start Function not define`, this.tokens[this.index - 1]);
 
     let name = this.tokens[this.index++].value;
 
-    if (this.tokens[this.index++].type != "Open Parentheses")
-      throw Error(`Open Parentheses are missing. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
+    if (this.tokens[this.index++].type != "Open Parentheses") this.errorMessageHandler(`Open Parentheses are missing`, this.tokens[this.index - 1]);
     // Should handle Values input!!
-    if (this.tokens[this.index++].type != "Close Parentheses")
-      throw Error(`Close Parentheses are missing. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
+    if (this.tokens[this.index++].type != "Close Parentheses") this.errorMessageHandler(`Close Parentheses are missing`, this.tokens[this.index - 1]);
 
     if (this.tokens[this.index].type != "Start Block" || this.tokens[this.index + 1].type != "Block")
-      throw Error(`Indented Block is missing. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
+      this.errorMessageHandler(`Indented Block is missing`, this.tokens[this.index - 1]);
     this.level++;
 
     return { name: name, Statement: this.parseStatement() };
@@ -58,11 +55,10 @@ class Parser {
     }
     this.index += this.level + 1;
 
-    if (this.tokens[this.index++].type != "Return Keyword")
-      throw Error(`Return is not define. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
+    if (this.tokens[this.index++].type != "Return Keyword") this.errorMessageHandler(`Return is not define`, this.tokens[this.index - 1]);
 
     if (!isInclude(this.tokens[this.index], "Number", "Char", "String", "Unary", "Parentheses"))
-      throw Error(`Type error. Error in line ${this.tokens[this.index].line}, col ${this.tokens[this.index].char}`);
+      this.errorMessageHandler(`Type error`, this.tokens[this.index - 1]);
 
     return { Expression: this.parseExpression({}) };
 
@@ -90,8 +86,7 @@ class Parser {
       case "Number":
         let constant = this.parseConstExpression();
         this.prevType = this.prevType || constant.type;
-        if (constant.type != this.prevType)
-          throw Error(`Wrong arithmetic type. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
+        if (constant.type != this.prevType) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.index - 1]);
 
         // Check if priority is important, if not then parser next
         //    else return the const
@@ -117,7 +112,7 @@ class Parser {
           if (!priority) return this.parseExpression({ params: this.parseExpression({}), sign: sign });
           else return this.parseExpression({});
         } else if (!params.type) {
-          throw Error(`Wrong arithmetic style. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
+          this.errorMessageHandler(`Wrong arithmetic style`, this.tokens[this.index - 1]);
         } else {
           this.parenthesesCounter--;
           return params;
@@ -160,7 +155,7 @@ class Parser {
         return { value: value, type: "STR" };
     }
 
-    throw Error(`Convert Type Error. Error in line ${this.tokens[this.index - 1].line}, col ${this.tokens[this.index - 1].char}`);
+    this.errorMessageHandler(`Convert Type Error`, this.tokens[this.index - 1]);
   }
 
   parseUnaryExpression(priority, sign) {
@@ -175,7 +170,7 @@ class Parser {
     let { value, type } = this.tokens[this.index++];
 
     // Check if left is not an empty Object, else it's an Error!
-    if (!params.type) throw Error("Error!!!");
+    if (!params.type) this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.index - 1]);
 
     switch (type.split(/\ /g)[0] || type) {
       case "Power":
