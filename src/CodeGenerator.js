@@ -131,7 +131,7 @@ class Generator {
     switch (tree.type) {
       case "CHAR":
       case "INT":
-        this.stack.push(`PUSH 0${tree.value} `);
+        this.stack.push(`PUSH 0${tree.value}`);
         break;
 
       case "STR":
@@ -166,6 +166,7 @@ class Generator {
 
       case "/":
         this.stack.push(`MOV EAX, ${regs[0]}`);
+        this.stack.push(`MOV EDX, 00H`);
         this.stack.push(`DIV ${regs[1]}`);
         this.stack.push(`PUSH EAX`);
         break;

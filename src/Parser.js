@@ -117,6 +117,9 @@ class Parser {
           this.parenthesesCounter--;
           return params;
         }
+
+      default:
+        if (!params.type) this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.index - 1]);
     }
 
     return params;
