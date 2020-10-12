@@ -1,9 +1,9 @@
 {
   "def": "Function Keyword",
-  "main": "Identifier",
   "return": "Return Keyword",
   "if": "Condition Keyword",
   ":": "Start Block",
+  " ": "Space",
   "    ": "Block",
   ";": "Lines Separation",
   "(": "Open Parentheses",
