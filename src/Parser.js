@@ -1,3 +1,8 @@
+const FUNC_DECLARATION = 0;
+const VARIABLE_DECLARATION = 1;
+const RETURN_DECLARATION = 2;
+const BLOCK_STATE = 3;
+
 class Parser {
   constructor(tokens) {
     console.log("\x1b[34m", "\n~ Start Parser:", "\x1b[0m");
@@ -7,12 +12,13 @@ class Parser {
     this.parenthesesCounter = 0;
   }
 
-  startParser() {
+  start() {
     this.index = 0; // Curr Index for tokens
     this.level = 0; // Define Statement Depth
 
     try {
-      this.syntaxTree = { type: "Program", body: [{ Declaration: this.parseDeclaration() }] };
+      // this.syntaxTree = { type: "Program", body: [{ Declaration: this.parseDeclaration() }] };
+      this.initStateMachine();
 
       if (this.parenthesesCounter)
         this.errorMessageHandler(`Missed ${this.parenthesesCounter > 0 ? "Closing" : "Opening"} Parentheses`, this.tokens[this.index - 1]);
@@ -31,34 +37,127 @@ class Parser {
     throw Error(`${message}. Error in line ${line}, col ${char}`);
   }
 
-  parseDeclaration() {
-    if (this.tokens[this.index++].type != "Function Keyword") this.errorMessageHandler(`Start Function not define`, this.tokens[this.index - 1]);
+  stateMachine(state) {
+    switch (state) {
+      case FUNC_DECLARATION:
+        let func = {};
+        func.name = this.parseFunc();
+        this.stateMachine(BLOCK_STATE);
+        // func.Statement = this.parseStatement();
+        this.initStateMachine();
+        break;
+
+      case VARIABLE_DECLARATION:
+        this.parseVariable();
+        break;
+
+      case RETURN_DECLARATION:
+        console.log(this.parseReturn());
+        break;
+
+      case BLOCK_STATE:
+        console.log("Here!!!!");
+        if (this.tokens[this.index++].type != "Block") this.errorMessageHandler(`Indented Block is missing`, this.tokens[this.index - 1]);
+        // this.initStateMachine();
+        break;
+    }
+  }
+
+  initStateMachine() {
+    let { type } = this.tokens[this.index] || { type: "EOF" };
+    console.log(type);
+
+    switch (type.split(" ")[0]) {
+      case "Function":
+        console.log("Function", this.tokens[this.index]);
+        this.stateMachine(FUNC_DECLARATION);
+        break;
+
+      case "Return":
+        console.log("Return", this.tokens[this.index]);
+        this.stateMachine(RETURN_DECLARATION);
+        this.initStateMachine();
+        break;
+
+      case "Variable":
+        console.log("Statement", this.tokens[this.index]);
+        this.stateMachine(VARIABLE_DECLARATION);
+        this.initStateMachine();
+        break;
+
+      case "Block":
+        if (this.level) this.stateMachine(BLOCK_STATE);
+        this.initStateMachine();
+        break;
+
+      case "EOF":
+        break;
+
+      default:
+        this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.index]);
+    }
+  }
+
+  checkExp({ type, line }, expected, currLine) {
+    return type.includes(expected) && line == currLine;
+  }
+
+  deleteSpacesInLine(currLine) {
+    let i = this.index;
+    let { line } = this.tokens[i];
+
+    while (line == currLine) {
+      let { type } = this.tokens[i];
+
+      if (type == "Space") this.tokens.splice(i, 1);
+      else i++;
+
+      // line + 1  --  for handling file end
+      line = this.tokens[i] ? this.tokens[i].line : line + 1;
+    }
+  }
+
+  parseFunc() {
+    let { line } = this.tokens[this.index];
+
+    if (!this.checkExp(this.tokens[this.index++], "Function Keyword", line)) this.errorMessageHandler(`Start Function not define`, this.tokens[this.index - 1]);
+    if (!this.checkExp(this.tokens[this.index++], "Space", line)) this.errorMessageHandler(`Start Function not define`, this.tokens[this.index - 1]);
+
+    this.deleteSpacesInLine(line);
 
     let name = this.tokens[this.index++].value;
 
-    if (this.tokens[this.index++].type != "Open Parentheses") this.errorMessageHandler(`Open Parentheses are missing`, this.tokens[this.index - 1]);
+    if (!this.checkExp(this.tokens[this.index++], "Open Parentheses", line))
+      this.errorMessageHandler(`Open Parentheses are missing`, this.tokens[this.index - 1]);
     // Should handle Values input!!
-    if (this.tokens[this.index++].type != "Close Parentheses") this.errorMessageHandler(`Close Parentheses are missing`, this.tokens[this.index - 1]);
+    if (!this.checkExp(this.tokens[this.index++], "Close Parentheses", line))
+      this.errorMessageHandler(`Close Parentheses are missing`, this.tokens[this.index - 1]);
 
-    if (this.tokens[this.index].type != "Start Block" || this.tokens[this.index + 1].type != "Block")
-      this.errorMessageHandler(`Indented Block is missing`, this.tokens[this.index - 1]);
+    if (!this.checkExp(this.tokens[this.index++], "Start Block", line)) this.errorMessageHandler(`Indented Block is missing`, this.tokens[this.index - 1]);
     this.level++;
 
-    return { name: name, Statement: this.parseStatement() };
+    return name;
+    // return { name: name, Statement: this.parseStatement() };
   }
 
-  parseStatement() {
+  parseReturn() {
     // console.log(this.tokens[this.index + this.level]);
 
-    for (var i = this.index + this.level; i > this.index; i--) {
-      if (this.tokens[i].type != "Block") this.level--;
-    }
-    this.index += this.level + 1;
+    // for (var i = this.index + this.level; i > this.index; i--) {
+    //   if (this.tokens[i].type != "Block") this.level--;
+    // }
+    // this.index += this.level + 1;
+    let { line } = this.tokens[this.index++];
 
-    if (this.tokens[this.index++].type != "Return Keyword") this.errorMessageHandler(`Return is not define`, this.tokens[this.index - 1]);
+    // if (this.checkExp(this.tokens[this.index++].type, "Return Keyword", line)) this.errorMessageHandler(`Return is not define`, this.tokens[this.index - 1]);
+    if (!this.checkExp(this.tokens[this.index++], "Space", line)) this.errorMessageHandler(`Return is not define`, this.tokens[this.index - 1]);
+
+    this.deleteSpacesInLine(line);
 
     if (!isInclude(this.tokens[this.index], "Number", "Char", "String", "Unary", "Parentheses"))
       this.errorMessageHandler(`Type error`, this.tokens[this.index - 1]);
+
+    this.currLine = line;
 
     return { Expression: this.parseExpression({}) };
 
@@ -70,6 +169,48 @@ class Parser {
     }
   }
 
+  parseVariable() {
+    // console.log(this.tokens[this.index + this.level]);
+
+    // for (var i = this.index + this.level; i > this.index; i--) {
+    //   if (this.tokens[i].type != "Block") this.level--;
+    // }
+    // this.index += this.level + 1;
+    let { line } = this.tokens[this.index++];
+    this.deleteSpacesInLine(line);
+
+    // if (this.checkExp(this.tokens[this.index++].type, "Variable", line)) this.errorMessageHandler(``, this.tokens[this.index - 1]);
+    if (!this.checkExp(this.tokens[this.index++], "Assignment", line))
+      if (this.checkExp(this.tokens[this.index - 1], "Open Parentheses", line)) return this.parseFuncCaller();
+      else this.errorMessageHandler(`Such syntax is not allowed`, this.tokens[this.index - 1]);
+
+    if (!isInclude(this.tokens[this.index], "Number", "Char", "String", "Unary", "Parentheses"))
+      this.errorMessageHandler(`Type error`, this.tokens[this.index - 1]);
+
+    this.currLine = line;
+
+    return { Expression: this.parseExpression({}) };
+
+    // Additional func
+
+    function isInclude({ type }, ...arr) {
+      for (let i of arr) if (type.includes(i)) return true;
+      return false;
+    }
+  }
+
+  parseFuncCaller() {
+    console.log("Hii");
+
+    let { line } = this.tokens[this.index];
+
+    // Should handle Values input!!
+    if (!this.checkExp(this.tokens[this.index], "Close Parentheses", line))
+      this.errorMessageHandler(`Close Parentheses are missing`, this.tokens[this.index - 1]);
+
+    this.index++;
+  }
+
   /**
    *
    * @param {*} param0
@@ -78,7 +219,8 @@ class Parser {
    * @param sign     --   is NegSign out of parentheses
    */
   parseExpression({ params = {}, priority = false, sign = false }) {
-    let { type } = this.tokens[this.index] || { type: "" };
+    let { type, line } = this.tokens[this.index] || { type: "", line: 0 };
+    if (line != this.currLine) return params;
 
     switch (type.split(/\ /g)[1] || type) {
       case "String":
@@ -122,7 +264,7 @@ class Parser {
         if (!params.type) this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.index - 1]);
     }
 
-    return params;
+    // return params;
   }
 
   parseConstExpression() {
