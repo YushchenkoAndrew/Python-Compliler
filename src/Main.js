@@ -9,7 +9,7 @@ function main() {
   // lexing.showTable();
 
   let parser = new Parser(lexing.getTokens());
-  parser.startParser();
+  parser.start();
 
   let generator = new Generator(parser.getTree());
   // generator.start("2-26-NodeJS-IO-82-Yushchenko-Andrew.asm");
