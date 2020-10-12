@@ -5,8 +5,13 @@ class Lexing {
   constructor(path) {
     console.log("\x1b[34m", "~ Start Lexing:", "\x1b[0m");
 
-    this.originText = readFileSync(path, "utf-8");
-    this.lines = this.originText.split("\n");
+    // Text filtration
+    // Read code and delete all commentaries from it
+    this.lines = readFileSync(path, "utf-8")
+      .split("\n")
+      .map((line) => `${line} `.slice(0, line.indexOf("#"))); // Delete Commentaries
+    // Recreate the text but without commentaries
+    this.originText = this.lines.join("\n");
     this.text = this.lines.join("");
     console.log(this.text);
     // console.log(lexemes);
@@ -35,6 +40,7 @@ class Lexing {
 
         if (j.includes(str) && j == this.text.substring(begin, begin + j.length)) {
           let lineNum = this.originText.indexOf(j, i) - i + str.length - 1;
+          console.log(`'${this.lines[lineNum]}' ${lineNum}`);
           result.push({ value: j, type: lexemes[j], line: lineNum, char: this.lines[lineNum].indexOf(j) });
         }
       }
