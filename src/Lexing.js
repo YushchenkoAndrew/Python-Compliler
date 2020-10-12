@@ -15,9 +15,12 @@ class Lexing {
     this.text = this.lines.join("");
     console.log(this.text);
     // console.log(lexemes);
+    this.lineNum = 0;
 
     this.tokens = [];
   }
+
+  isNewLine(i) {}
 
   defineTokens() {
     let str = "";
@@ -26,6 +29,12 @@ class Lexing {
 
     while (i < this.text.length) {
       str += this.text[i];
+
+      // FIXME: Fix bug with line
+      // Line counter
+      if (this.originText[i + this.lineNum] == "\n") {
+        this.lineNum++;
+      }
 
       // Python can handle Not ASCII Character!!
       // Handler of not ASCII Symbols
@@ -38,11 +47,8 @@ class Lexing {
       for (let j in lexemes) {
         let begin = i - str.length + 1;
 
-        if (j.includes(str) && j == this.text.substring(begin, begin + j.length)) {
-          let lineNum = this.originText.indexOf(j, i) - i + str.length - 1;
-          console.log(`'${this.lines[lineNum]}' ${lineNum}`);
-          result.push({ value: j, type: lexemes[j], line: lineNum, char: this.lines[lineNum].indexOf(j) });
-        }
+        if (j.includes(str) && j == this.text.substring(begin, begin + j.length))
+          result.push({ value: j, type: lexemes[j], line: this.lineNum, char: this.lines[this.lineNum].indexOf(j) });
       }
 
       // if (result.length) console.log(result);
@@ -60,12 +66,9 @@ class Lexing {
         }
         case 1: {
           // Add a variable, variable is not define in TokenTypes
-          if (variable.length && variable.replace(/\ /g, "").length) {
-            let start = i - variable.length;
-            let lineNum = this.originText.indexOf(variable, start) - start;
-            // Delete space between in variable
-            variable = variable.replace(/ /g, "");
-            this.tokens.push({ value: variable, type: "Variable", line: lineNum, char: this.lines[lineNum].indexOf(variable) });
+          // if (variable.length && variable.replace(/\ /g, "").length) {
+          if (variable.length) {
+            this.tokens.push({ value: variable, type: "Variable", line: this.lineNum, char: this.lines[this.lineNum].indexOf(variable) });
             variable = "";
           }
 
