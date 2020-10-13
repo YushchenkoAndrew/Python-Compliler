@@ -9,7 +9,8 @@ class Lexing {
     // Read code and delete all commentaries from it
     this.lines = readFileSync(path, "utf-8")
       .split("\n")
-      .map((line) => `${line} `.slice(0, line.indexOf("#"))); // Delete Commentaries
+      .map((line) => `${line} `.slice(0, line.indexOf("#")));
+    // .map((line) => (line == "" ? "" : line)); // Delete Commentaries
     this.text = this.lines.join("");
     console.log(this.text);
     // console.log(lexemes);
@@ -29,9 +30,10 @@ class Lexing {
     while (i < this.text.length) {
       str += this.text[i];
 
-      // FIXME: Bug with bug counter
-      // Line counter
-      if (this.lines[this.lineNum][i - this.delta] === undefined) {
+      // Need a while loop for come over '\n' symbol, because in the this.text it's missed
+      // That mean that al symbols '\n' erased, while loop will find the spot where this.text[i]
+      // located in other words it' find the specific lineNum despite empty one
+      while (this.lines[this.lineNum][i - this.delta] != this.text[i]) {
         this.delta += this.lines[this.lineNum].length;
         this.lineNum++;
       }
