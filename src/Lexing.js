@@ -10,12 +10,11 @@ class Lexing {
     this.lines = readFileSync(path, "utf-8")
       .split("\n")
       .map((line) => `${line} `.slice(0, line.indexOf("#"))); // Delete Commentaries
-    // Recreate the text but without commentaries
-    this.originText = this.lines.join("\n");
     this.text = this.lines.join("");
     console.log(this.text);
     // console.log(lexemes);
     this.lineNum = 0;
+    this.delta = 0;
 
     this.tokens = [];
   }
@@ -30,9 +29,9 @@ class Lexing {
     while (i < this.text.length) {
       str += this.text[i];
 
-      // FIXME: Fix bug with line
       // Line counter
-      if (this.originText[i + this.lineNum] == "\n") {
+      if (this.lines[this.lineNum][i - this.delta] === undefined) {
+        this.delta += this.lines[this.lineNum].length;
         this.lineNum++;
       }
 
