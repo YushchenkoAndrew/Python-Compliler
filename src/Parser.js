@@ -10,6 +10,7 @@ class Parser {
     this.tokens = [...tokens];
     this.syntaxTree = {};
     this.parenthesesCounter = 0;
+    this.currLevel = 0;
   }
 
   start() {
@@ -17,8 +18,9 @@ class Parser {
     this.level = 0; // Define Statement Depth
 
     try {
-      // this.syntaxTree = { type: "Program", body: [{ Declaration: this.parseDeclaration() }] };
-      this.initStateMachine();
+      this.syntaxTree = { type: "Program", body: this.initStateMachine() };
+      // this.initStateMachine();
+      // console.dir(this.initStateMachine(), { depth: null });
 
       if (this.parenthesesCounter)
         this.errorMessageHandler(`Missed ${this.parenthesesCounter > 0 ? "Closing" : "Opening"} Parentheses`, this.tokens[this.index - 1]);
@@ -37,64 +39,86 @@ class Parser {
     throw Error(`${message}. Error in line ${line}, col ${char}`);
   }
 
-  stateMachine(state) {
-    switch (state) {
-      case FUNC_DECLARATION:
-        let func = {};
-        func.name = this.parseFunc();
-        this.stateMachine(BLOCK_STATE);
-        // func.Statement = this.parseStatement();
-        this.initStateMachine();
-        break;
-
-      case VARIABLE_DECLARATION:
-        this.parseVariable();
-        break;
-
-      case RETURN_DECLARATION:
-        console.log(this.parseReturn());
-        break;
-
-      case BLOCK_STATE:
-        console.log("Here!!!!");
-        if (this.tokens[this.index++].type != "Block") this.errorMessageHandler(`Indented Block is missing`, this.tokens[this.index - 1]);
-        // this.initStateMachine();
-        break;
-    }
-  }
-
-  initStateMachine() {
-    let { type } = this.tokens[this.index] || { type: "EOF" };
-    console.log(type);
+  initStateMachine(level = 0, prevLine = 0) {
+    let { type, line } = this.tokens[this.index] || { type: "EOF" };
+    // console.log(line);
 
     switch (type.split(" ")[0]) {
       case "Function":
-        console.log("Function", this.tokens[this.index]);
-        this.stateMachine(FUNC_DECLARATION);
-        break;
+        console.log(`FUNCTION: PREV ${prevLine} L ${line} LEVEL ${level}`, this.tokens[this.index]);
+
+        // if (!checkLevel.apply(this, level)) return [];
+        if (!checkLevel.call(this, level)) return [];
+
+        this.currLevel++;
+
+        let func = { type: "FUNC", name: this.parseFunc(), body: [...this.initStateMachine(level + 1, this.tokens[this.index - 1].line)] };
+        // console.log(func);
+        console.dir(func, { depth: null });
+
+        // console.log(this.initStateMachine());
+        // this.stateMachine(FUNC_DECLARATION);
+        // break;
+        return [{ Declaration: func }, ...this.initStateMachine(level, this.tokens[this.index].line)];
 
       case "Return":
-        console.log("Return", this.tokens[this.index]);
-        this.stateMachine(RETURN_DECLARATION);
-        this.initStateMachine();
-        break;
+        // console.log("RETURN", this.tokens[this.index]);
+        console.log(`RETURN:   PREV ${prevLine} L ${line} LEVEL ${level}`, this.tokens[this.index]);
+
+        if (!checkLevel.call(this, level)) return [];
+        // this.stateMachine(RETURN_DECLARATION);
+        // this.initStateMachine();
+        return [{ Statement: this.parseReturn() }, ...this.initStateMachine(0, line)];
+      // break;
 
       case "Variable":
-        console.log("Statement", this.tokens[this.index]);
-        this.stateMachine(VARIABLE_DECLARATION);
-        this.initStateMachine();
-        break;
+        // console.log(this.currLevel - level);
+        console.log(`VARIABLE: PREV ${prevLine} L ${line} LEVEL ${level}`, this.tokens[this.index]);
+
+        if (!checkLevel.call(this, level)) return [];
+
+        // this.stateMachine(VARIABLE_DECLARATION);
+        // this.initStateMachine();
+        return [{ Statement: this.parseVariable() }, ...this.initStateMachine(0, line)];
+      // break;
 
       case "Block":
-        if (this.level) this.stateMachine(BLOCK_STATE);
-        this.initStateMachine();
-        break;
+        level = prevLine == line ? level : 0;
+        console.log(`BLOCK: \t  PREV ${prevLine} L ${line} LEVEL ${level}`);
+
+        // this.checkExp(this.tokens[this.index++], "Block", line);
+
+        this.index++;
+        // if (prevLine == line) return this.initStateMachine(level + 1, line);
+        return this.initStateMachine(level + 1, line);
+      // if (!this.stateMachine(BLOCK_STATE)) this.errorMessageHandler(`Indented Block is missing`, this.tokens[this.index - 1]);
+
+      // let level = this.level--;
+      // this.initStateMachine();
+      // this.level = level;
+      // break;
 
       case "EOF":
+        return [];
         break;
 
       default:
         this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.index]);
+    }
+
+    // Addition Functions
+    function checkLevel(level) {
+      // console.log(this);
+      if (this.currLevel - level < 0) this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.index]);
+
+      if (this.currLevel - level != 0) {
+        console.log(`CHANGE LEVEL FROM ${this.currLevel} TO ${level}`);
+        this.currLevel = level;
+        // return [];
+        return false;
+      }
+
+      return true;
     }
   }
 
@@ -118,9 +142,11 @@ class Parser {
   }
 
   parseFunc() {
-    let { line } = this.tokens[this.index];
+    let { line } = this.tokens[this.index++];
 
-    if (!this.checkExp(this.tokens[this.index++], "Function Keyword", line)) this.errorMessageHandler(`Start Function not define`, this.tokens[this.index - 1]);
+    // console.log(line, this.tokens[this.index - 1]);
+    console.log(line, this.tokens[this.index]);
+    // if (!this.checkExp(this.tokens[this.index++], "Function Keyword", line)) this.errorMessageHandler(`Start Function not define`, this.tokens[this.index - 1]);
     if (!this.checkExp(this.tokens[this.index++], "Space", line)) this.errorMessageHandler(`Start Function not define`, this.tokens[this.index - 1]);
 
     this.deleteSpacesInLine(line);
@@ -129,12 +155,13 @@ class Parser {
 
     if (!this.checkExp(this.tokens[this.index++], "Open Parentheses", line))
       this.errorMessageHandler(`Open Parentheses are missing`, this.tokens[this.index - 1]);
+
+    // TODO: create while loop checker for declare variables
     // Should handle Values input!!
     if (!this.checkExp(this.tokens[this.index++], "Close Parentheses", line))
       this.errorMessageHandler(`Close Parentheses are missing`, this.tokens[this.index - 1]);
 
     if (!this.checkExp(this.tokens[this.index++], "Start Block", line)) this.errorMessageHandler(`Indented Block is missing`, this.tokens[this.index - 1]);
-    this.level++;
 
     return name;
     // return { name: name, Statement: this.parseStatement() };
@@ -159,7 +186,7 @@ class Parser {
 
     this.currLine = line;
 
-    return { Expression: this.parseExpression({}) };
+    return { type: "RET", Expression: this.parseExpression({}) };
 
     // Additional func
 
@@ -176,7 +203,7 @@ class Parser {
     //   if (this.tokens[i].type != "Block") this.level--;
     // }
     // this.index += this.level + 1;
-    let { line } = this.tokens[this.index++];
+    let { value, line } = this.tokens[this.index++];
     this.deleteSpacesInLine(line);
 
     // if (this.checkExp(this.tokens[this.index++].type, "Variable", line)) this.errorMessageHandler(``, this.tokens[this.index - 1]);
@@ -189,7 +216,7 @@ class Parser {
 
     this.currLine = line;
 
-    return { Expression: this.parseExpression({}) };
+    return { type: "VAR", name: value, Expression: this.parseExpression({}) };
 
     // Additional func
 
@@ -220,7 +247,10 @@ class Parser {
    */
   parseExpression({ params = {}, priority = false, sign = false }) {
     let { type, line } = this.tokens[this.index] || { type: "", line: 0 };
-    if (line != this.currLine) return params;
+    if (line != this.currLine) {
+      this.prevType = undefined;
+      return params;
+    }
 
     switch (type.split(/\ /g)[1] || type) {
       case "String":
