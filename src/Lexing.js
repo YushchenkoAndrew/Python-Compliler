@@ -29,6 +29,7 @@ class Lexing {
     while (i < this.text.length) {
       str += this.text[i];
 
+      // FIXME: Bug with bug counter
       // Line counter
       if (this.lines[this.lineNum][i - this.delta] === undefined) {
         this.delta += this.lines[this.lineNum].length;
