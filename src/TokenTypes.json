@@ -5,6 +5,7 @@
   ":": "Start Block",
   " ": "Space",
   "    ": "Block",
+  ",": "Comma",
   ";": "Lines Separation",
   "(": "Open Parentheses",
   ")": "Close Parentheses",
