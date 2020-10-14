@@ -1,16 +1,19 @@
-const FUNC_DECLARATION = 0;
-const VARIABLE_DECLARATION = 1;
-const RETURN_DECLARATION = 2;
-const BLOCK_STATE = 3;
-
 class Parser {
   constructor(tokens) {
     console.log("\x1b[34m", "\n~ Start Parser:", "\x1b[0m");
+    // Input modules
+    this.inputModule(require("./Expression"));
+    this.inputModule(require("./Statement"));
 
     this.tokens = [...tokens];
     this.syntaxTree = {};
     this.parenthesesCounter = 0;
     this.currLevel = 0;
+    this.prevType = undefined;
+  }
+
+  inputModule(mod) {
+    for (let key in mod) this[key] = mod[key].bind(this);
   }
 
   start() {
@@ -19,8 +22,6 @@ class Parser {
 
     try {
       this.syntaxTree = { type: "Program", body: this.initStateMachine() };
-      // this.initStateMachine();
-      // console.dir(this.initStateMachine(), { depth: null });
 
       if (this.parenthesesCounter)
         this.errorMessageHandler(`Missed ${this.parenthesesCounter > 0 ? "Closing" : "Opening"} Parentheses`, this.tokens[this.index - 1]);
@@ -30,6 +31,7 @@ class Parser {
       return {};
     }
 
+    console.log();
     console.dir(this.syntaxTree, { depth: null });
 
     return this.syntaxTree;
@@ -39,91 +41,57 @@ class Parser {
     throw Error(`${message}. Error in line ${line}, col ${char}`);
   }
 
-  initStateMachine(level = 0, prevLine = 0) {
-    let { type, line } = this.tokens[this.index] || { type: "EOF" };
-    // console.log(line);
+  initStateMachine(level = 0, prevLine = 0, forcedBlock = false) {
+    let { type, line } = this.tokens[this.index] || { type: "EOF", line: -1 };
 
     switch (type.split(" ")[0]) {
       case "Function":
         console.log(`FUNCTION: PREV ${prevLine} L ${line} LEVEL ${level}`, this.tokens[this.index]);
 
-        // if (!checkLevel.apply(this, level)) return [];
-        if (!checkLevel.call(this, level)) return [];
-
+        if (!checkLevel.call(this, level, forcedBlock)) return [];
         this.currLevel++;
 
-        let func = { type: "FUNC", name: this.parseFunc(), body: [...this.initStateMachine(level + 1, this.tokens[this.index - 1].line)] };
-        // console.log(func);
-        console.dir(func, { depth: null });
-
-        // console.log(this.initStateMachine());
-        // this.stateMachine(FUNC_DECLARATION);
-        // break;
-        return [{ Declaration: func }, ...this.initStateMachine(level, this.tokens[this.index].line)];
+        let func = { type: "FUNC", ...this.parseFunc(), body: [...this.initStateMachine(level + 1, this.tokens[this.index - 1].line, true)] };
+        return [{ Declaration: func }, ...this.initStateMachine(level, (this.tokens[this.index] || {}).line)];
 
       case "Return":
-        // console.log("RETURN", this.tokens[this.index]);
         console.log(`RETURN:   PREV ${prevLine} L ${line} LEVEL ${level}`, this.tokens[this.index]);
 
-        if (!checkLevel.call(this, level)) return [];
-        // this.stateMachine(RETURN_DECLARATION);
-        // this.initStateMachine();
+        if (!checkLevel.call(this, level, forcedBlock)) return [];
         return [{ Statement: this.parseReturn() }, ...this.initStateMachine(0, line)];
-      // break;
 
       case "Variable":
-        // console.log(this.currLevel - level);
-        console.log(`VARIABLE: PREV ${prevLine} L ${line} LEVEL ${level}`, this.tokens[this.index]);
+        // console.log(`VARIABLE: PREV ${prevLine} L ${line} LEVEL ${level}`, this.tokens[this.index]);
 
-        if (!checkLevel.call(this, level)) return [];
-
-        // this.stateMachine(VARIABLE_DECLARATION);
-        // this.initStateMachine();
+        if (!checkLevel.call(this, level, forcedBlock)) return [];
         return [{ Statement: this.parseVariable() }, ...this.initStateMachine(0, line)];
-      // break;
 
       case "Block":
         level = prevLine == line ? level : 0;
-        console.log(`BLOCK: \t  PREV ${prevLine} L ${line} LEVEL ${level}`);
-
-        // this.checkExp(this.tokens[this.index++], "Block", line);
+        // console.log(`BLOCK: \t  PREV ${prevLine} L ${line} LEVEL ${level}`);
 
         this.index++;
-        // if (prevLine == line) return this.initStateMachine(level + 1, line);
-        return this.initStateMachine(level + 1, line);
-      // if (!this.stateMachine(BLOCK_STATE)) this.errorMessageHandler(`Indented Block is missing`, this.tokens[this.index - 1]);
-
-      // let level = this.level--;
-      // this.initStateMachine();
-      // this.level = level;
-      // break;
+        return this.initStateMachine(level + 1, line, forcedBlock);
 
       case "EOF":
         return [];
-        break;
 
       default:
         this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.index]);
     }
 
     // Addition Functions
-    function checkLevel(level) {
-      // console.log(this);
-      if (this.currLevel - level < 0) this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.index]);
+    function checkLevel(level, force) {
+      if (this.currLevel - level < 0 || (force && this.currLevel != level)) this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.index]);
 
       if (this.currLevel - level != 0) {
         console.log(`CHANGE LEVEL FROM ${this.currLevel} TO ${level}`);
         this.currLevel = level;
-        // return [];
         return false;
       }
 
       return true;
     }
-  }
-
-  checkExp({ type, line }, expected, currLine) {
-    return type.includes(expected) && line == currLine;
   }
 
   deleteSpacesInLine(currLine) {
@@ -140,238 +108,6 @@ class Parser {
       line = this.tokens[i] ? this.tokens[i].line : line + 1;
     }
   }
-
-  parseFunc() {
-    let { line } = this.tokens[this.index++];
-
-    // console.log(line, this.tokens[this.index - 1]);
-    console.log(line, this.tokens[this.index]);
-    // if (!this.checkExp(this.tokens[this.index++], "Function Keyword", line)) this.errorMessageHandler(`Start Function not define`, this.tokens[this.index - 1]);
-    if (!this.checkExp(this.tokens[this.index++], "Space", line)) this.errorMessageHandler(`Start Function not define`, this.tokens[this.index - 1]);
-
-    this.deleteSpacesInLine(line);
-
-    let name = this.tokens[this.index++].value;
-
-    if (!this.checkExp(this.tokens[this.index++], "Open Parentheses", line))
-      this.errorMessageHandler(`Open Parentheses are missing`, this.tokens[this.index - 1]);
-
-    // TODO: create while loop checker for declare variables
-    // Should handle Values input!!
-    if (!this.checkExp(this.tokens[this.index++], "Close Parentheses", line))
-      this.errorMessageHandler(`Close Parentheses are missing`, this.tokens[this.index - 1]);
-
-    if (!this.checkExp(this.tokens[this.index++], "Start Block", line)) this.errorMessageHandler(`Indented Block is missing`, this.tokens[this.index - 1]);
-
-    return name;
-    // return { name: name, Statement: this.parseStatement() };
-  }
-
-  parseReturn() {
-    // console.log(this.tokens[this.index + this.level]);
-
-    // for (var i = this.index + this.level; i > this.index; i--) {
-    //   if (this.tokens[i].type != "Block") this.level--;
-    // }
-    // this.index += this.level + 1;
-    let { line } = this.tokens[this.index++];
-
-    // if (this.checkExp(this.tokens[this.index++].type, "Return Keyword", line)) this.errorMessageHandler(`Return is not define`, this.tokens[this.index - 1]);
-    if (!this.checkExp(this.tokens[this.index++], "Space", line)) this.errorMessageHandler(`Return is not define`, this.tokens[this.index - 1]);
-
-    this.deleteSpacesInLine(line);
-
-    if (!isInclude(this.tokens[this.index], "Number", "Char", "String", "Unary", "Parentheses"))
-      this.errorMessageHandler(`Type error`, this.tokens[this.index - 1]);
-
-    this.currLine = line;
-
-    return { type: "RET", Expression: this.parseExpression({}) };
-
-    // Additional func
-
-    function isInclude({ type }, ...arr) {
-      for (let i of arr) if (type.includes(i)) return true;
-      return false;
-    }
-  }
-
-  parseVariable() {
-    // console.log(this.tokens[this.index + this.level]);
-
-    // for (var i = this.index + this.level; i > this.index; i--) {
-    //   if (this.tokens[i].type != "Block") this.level--;
-    // }
-    // this.index += this.level + 1;
-    let { value, line } = this.tokens[this.index++];
-    this.deleteSpacesInLine(line);
-
-    // if (this.checkExp(this.tokens[this.index++].type, "Variable", line)) this.errorMessageHandler(``, this.tokens[this.index - 1]);
-    if (!this.checkExp(this.tokens[this.index++], "Assignment", line))
-      if (this.checkExp(this.tokens[this.index - 1], "Open Parentheses", line)) return this.parseFuncCaller();
-      else this.errorMessageHandler(`Such syntax is not allowed`, this.tokens[this.index - 1]);
-
-    if (!isInclude(this.tokens[this.index], "Number", "Char", "String", "Unary", "Parentheses"))
-      this.errorMessageHandler(`Type error`, this.tokens[this.index - 1]);
-
-    this.currLine = line;
-
-    return { type: "VAR", name: value, Expression: this.parseExpression({}) };
-
-    // Additional func
-
-    function isInclude({ type }, ...arr) {
-      for (let i of arr) if (type.includes(i)) return true;
-      return false;
-    }
-  }
-
-  parseFuncCaller() {
-    console.log("Hii");
-
-    let { line } = this.tokens[this.index];
-
-    // Should handle Values input!!
-    if (!this.checkExp(this.tokens[this.index], "Close Parentheses", line))
-      this.errorMessageHandler(`Close Parentheses are missing`, this.tokens[this.index - 1]);
-
-    this.index++;
-  }
-
-  /**
-   *
-   * @param {*} param0
-   * @param params   --   Previous param
-   * @param priority --   priority is important
-   * @param sign     --   is NegSign out of parentheses
-   */
-  parseExpression({ params = {}, priority = false, sign = false }) {
-    let { type, line } = this.tokens[this.index] || { type: "", line: 0 };
-    if (line != this.currLine) {
-      this.prevType = undefined;
-      return params;
-    }
-
-    switch (type.split(/\ /g)[1] || type) {
-      case "String":
-      case "Char":
-      case "Number":
-        let constant = this.parseConstExpression();
-        this.prevType = this.prevType || constant.type;
-        if (constant.type != this.prevType) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.index - 1]);
-
-        // Check if priority is important, if not then parser next
-        //    else return the const
-        if (!priority) return this.parseExpression({ params: constant, sign: sign });
-        else return constant;
-
-      case "Unary":
-        // Check if prev value is an another exp, if not then "-" is a Unary Operation
-        //    else Binary Operation
-        if (!params.type) return this.parseUnaryExpression(priority, sign);
-
-      case "Operator":
-        return this.parserOperatorExpression(params, sign);
-
-      case "Parentheses":
-        this.index++;
-        // Check if it Open Parentheses, if so then check next element
-        //    else if it Close, then return created value
-        if (type.includes("Open")) {
-          this.parenthesesCounter++;
-          // Check if priority is important, if not then parser next
-          //    else return the value in a Parentheses
-          if (!priority) return this.parseExpression({ params: this.parseExpression({}), sign: sign });
-          else return this.parseExpression({});
-        } else if (!params.type) {
-          this.errorMessageHandler(`Wrong arithmetic style`, this.tokens[this.index - 1]);
-        } else {
-          this.parenthesesCounter--;
-          return params;
-        }
-
-      default:
-        if (!params.type) this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.index - 1]);
-    }
-
-    // return params;
-  }
-
-  parseConstExpression() {
-    let { value, type } = this.tokens[this.index++];
-
-    // Type converting
-    switch (type.split(/\ /g)[0] || type) {
-      case "Bin":
-        if (isNaN(parseInt(value.substr(2), 2))) break;
-        return { value: `${value.substr(2)}B`, type: "INT", kind: 2 };
-
-      case "Oct":
-        if (isNaN(parseInt(value.substr(2), 8))) break;
-        return { value: `${value.substr(2)}O`, type: "INT", kind: 8 };
-
-      case "Hex":
-        if (isNaN(parseInt(value.substr(2), 16))) break;
-        return { value: `${value.substr(2)}H`, type: "INT", kind: 16 };
-
-      case "Float":
-        if (parseInt(value) == value) return { value: parseInt(value), type: "INT", kind: "10" };
-        return { value: Number(value), type: "FLOAT" };
-
-      case "Number":
-        return { value: value, type: "INT", kind: "10" };
-
-      case "Char":
-        value = value.charCodeAt(0);
-        if (isNaN(value)) break;
-        return { value: value, type: "CHAR" };
-
-      case "String":
-        return { value: value, type: "STR" };
-    }
-
-    this.errorMessageHandler(`Convert Type Error`, this.tokens[this.index - 1]);
-  }
-
-  parseUnaryExpression(priority, sign) {
-    let { value, type } = this.tokens[this.index++];
-
-    if (!priority)
-      return this.parseExpression({ params: { type: "Unary Operation", value: value, exp: this.parseExpression({ priority: true, sign: sign }) }, sign: sign });
-    else return { type: "Unary Operation", value: value, exp: this.parseExpression({ priority: true, sign: sign }) };
-  }
-
-  parserOperatorExpression(params, sign) {
-    let { value, type } = this.tokens[this.index++];
-
-    // Check if left is not an empty Object, else it's an Error!
-    if (!params.type) this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.index - 1]);
-
-    switch (type.split(/\ /g)[0] || type) {
-      case "Power":
-      case "Div":
-      case "Mult":
-        return this.parseExpression({
-          params: { type: "Binary Operation", value: value, left: params, right: this.parseExpression({ priority: true, sign: sign }) },
-          sign: sign,
-        });
-
-      case "Neg":
-        if (sign) value = "+";
-        else sign ^= true;
-        break;
-
-      case "Add":
-        if (sign) {
-          value = "-";
-          sign ^= true;
-        }
-        break;
-    }
-
-    return { type: "Binary Operation", value: value, left: params, right: this.parseExpression({ sign: sign }) };
-  }
-
   getTree() {
     return this.syntaxTree;
   }
