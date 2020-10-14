@@ -9,8 +9,15 @@ class Lexing {
     // Read code and delete all commentaries from it
     this.lines = readFileSync(path, "utf-8")
       .split("\n")
-      .map((line) => `${line} `.slice(0, line.indexOf("#")));
-    // .map((line) => (line == "" ? "" : line)); // Delete Commentaries
+      .map((line) => {
+        line = `${line} `.slice(0, line.indexOf("#"));
+
+        // Delete Commentaries on top of that if line become empty
+        // after deleting commentary that it will 'erase' it
+        // in other word replace with empty string
+        if (line.replace(/ /g, "").length) return line;
+        return "";
+      });
     this.text = this.lines.join("");
     console.log(this.text);
     // console.log(lexemes);
@@ -30,6 +37,8 @@ class Lexing {
     while (i < this.text.length) {
       str += this.text[i];
 
+      var prevLine = this.lineNum;
+
       // Need a while loop for come over '\n' symbol, because in the this.text it's missed
       // That mean that al symbols '\n' erased, while loop will find the spot where this.text[i]
       // located in other words it' find the specific lineNum despite empty one
@@ -45,6 +54,7 @@ class Lexing {
       //   break;
       // }
 
+      // Find tokens in the code
       let result = [];
       for (let j in lexemes) {
         let begin = i - str.length + 1;
@@ -58,6 +68,11 @@ class Lexing {
       switch (result.length) {
         // Some symbol not exist
         case 0: {
+          if (variable.length && prevLine != this.lineNum) {
+            this.tokens.push({ value: variable, type: "Variable", line: prevLine, char: this.lines[prevLine].indexOf(variable) });
+            variable = "";
+          }
+
           let { type } = this.tokens[this.tokens.length - 1] || { type: "" };
           if (type == "Define Char") this.tokens[this.tokens.length - 1].value += this.text[i];
           else variable += str;
@@ -70,7 +85,7 @@ class Lexing {
           // Add a variable, variable is not define in TokenTypes
           // if (variable.length && variable.replace(/\ /g, "").length) {
           if (variable.length) {
-            this.tokens.push({ value: variable, type: "Variable", line: this.lineNum, char: this.lines[this.lineNum].indexOf(variable) });
+            this.tokens.push({ value: variable, type: "Variable", line: prevLine, char: this.lines[prevLine].indexOf(variable) });
             variable = "";
           }
 
