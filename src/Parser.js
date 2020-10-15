@@ -5,11 +5,15 @@ class Parser {
     this.inputModule(require("./Expression"));
     this.inputModule(require("./Statement"));
 
-    this.tokens = [...tokens];
+    // Deep copy data, for remove linking
+    this.tokens = JSON.parse(JSON.stringify(tokens));
     this.syntaxTree = {};
     this.parenthesesCounter = 0;
-    this.currLevel = 0;
     this.prevType = undefined;
+
+    this.line = 0; // Curr line
+    this.index = 0; // Curr Index for tokens
+    this.currLevel = 0; // Define Statement Depth
   }
 
   inputModule(mod) {
@@ -17,9 +21,6 @@ class Parser {
   }
 
   start() {
-    this.index = 0; // Curr Index for tokens
-    this.level = 0; // Define Statement Depth
-
     try {
       this.syntaxTree = { type: "Program", body: this.initStateMachine() };
 
@@ -38,51 +39,61 @@ class Parser {
   }
 
   errorMessageHandler(message, { line, char }) {
-    throw Error(`${message}. Error in line ${line}, col ${char}`);
+    throw Error(`${message}. Error in line ${line + 1}, col ${char + 1}`);
   }
 
-  initStateMachine(level = 0, prevLine = 0, forcedBlock = false) {
-    let { type, line } = this.tokens[this.index] || { type: "EOF", line: -1 };
+  // TODO: Create an Object of current body for searching some variables and functions
+
+  initStateMachine(level = 0, forcedBlock = false) {
+    let { type } = this.tokens[this.line][this.index] || { type: this.tokens[this.line + 1] ? "NEXT" : "EOF" };
+    this.prevType = undefined;
 
     switch (type.split(" ")[0]) {
       case "Function":
-        console.log(`FUNCTION: PREV ${prevLine} L ${line} LEVEL ${level}`, this.tokens[this.index]);
+        console.log(`FUNCTION: LEVEL ${level}`, this.tokens[this.line][this.index]);
 
         if (!checkLevel.call(this, level, forcedBlock)) return [];
         this.currLevel++;
+        this.index++;
 
-        let func = { type: "FUNC", ...this.parseFunc(), body: [...this.initStateMachine(level + 1, this.tokens[this.index - 1].line, true)] };
-        return [{ Declaration: func }, ...this.initStateMachine(level, (this.tokens[this.index] || {}).line)];
+        let func = { type: "FUNC", ...this.parseFunc(), body: [...this.initStateMachine(level + 1, true)] };
+        // console.dir(func, { depth: null });
+        return [{ Declaration: func }, ...this.initStateMachine(level)];
 
+      case "Pass":
       case "Return":
-        console.log(`RETURN:   PREV ${prevLine} L ${line} LEVEL ${level}`, this.tokens[this.index]);
+        console.log(`RETURN:   LEVEL ${level}`, this.tokens[this.line][this.index]);
 
         if (!checkLevel.call(this, level, forcedBlock)) return [];
-        return [{ Statement: this.parseReturn() }, ...this.initStateMachine(0, line)];
+        this.index++;
+        return [{ Statement: this.parseReturn() }, ...this.initStateMachine(level)];
 
       case "Variable":
-        // console.log(`VARIABLE: PREV ${prevLine} L ${line} LEVEL ${level}`, this.tokens[this.index]);
-
+        console.log(`VARIABLE: LEVEL ${level}`, this.tokens[this.line][this.index]);
         if (!checkLevel.call(this, level, forcedBlock)) return [];
-        return [{ Statement: this.parseVariable() }, ...this.initStateMachine(0, line)];
+        this.index++;
+        return [{ Statement: this.parseVariable() }, ...this.initStateMachine(level)];
 
       case "Block":
-        level = prevLine == line ? level : 0;
-        // console.log(`BLOCK: \t  PREV ${prevLine} L ${line} LEVEL ${level}`);
-
+        console.log(`BLOCK: \t  LEVEL ${level}`);
         this.index++;
-        return this.initStateMachine(level + 1, line, forcedBlock);
+        return this.initStateMachine(level + 1, forcedBlock);
+
+      case "NEXT":
+        this.line++;
+        this.index = 0;
+        return this.initStateMachine(0, forcedBlock);
 
       case "EOF":
         return [];
 
       default:
-        this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.index]);
+        this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.line][this.index]);
     }
 
     // Addition Functions
     function checkLevel(level, force) {
-      if (this.currLevel - level < 0 || (force && this.currLevel != level)) this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.index]);
+      if (this.currLevel - level < 0 || (force && this.currLevel != level)) this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.line][this.index]);
 
       if (this.currLevel - level != 0) {
         console.log(`CHANGE LEVEL FROM ${this.currLevel} TO ${level}`);
@@ -94,20 +105,11 @@ class Parser {
     }
   }
 
-  deleteSpacesInLine(currLine) {
-    let i = this.index;
-    let { line } = this.tokens[i];
-
-    while (line == currLine) {
-      let { type } = this.tokens[i];
-
-      if (type == "Space") this.tokens.splice(i, 1);
-      else i++;
-
-      // line + 1  --  for handling file end
-      line = this.tokens[i] ? this.tokens[i].line : line + 1;
-    }
+  isInclude(type, ...arr) {
+    for (let i of arr) if (type.includes(i)) return true;
+    return false;
   }
+
   getTree() {
     return this.syntaxTree;
   }

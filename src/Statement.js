@@ -1,109 +1,84 @@
-function checkExp({ type, line }, expected, currLine) {
-  return type.includes(expected) && line == currLine;
+function stateChecker(key, token, error, ...expect) {
+  if (!token || !this.isInclude(token[key], ...expect)) this.errorMessageHandler(error, token || { line: this.line, char: 0 });
 }
 
-function cutParams(currLine) {
+function getParams(...allowed) {
   let params = [];
 
-  while (!this.checkExp(this.tokens[this.index], "Close", currLine)) {
-    let { value, line } = this.tokens[this.index];
-    if (!isInclude(this.tokens[this.index++], "Variable", "Number", "Char", "String") && currLine != line)
-      this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.index - 1]);
+  while (this.tokens[this.line][this.index] && !this.tokens[this.line][this.index].type.includes("Close")) {
+    let { value } = this.tokens[this.line][this.index];
+    this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong Function declaration Syntax", ...allowed);
     params.push(value);
-    this.index += this.checkExp(this.tokens[this.index], "Comma", line);
+    this.stateChecker("type", this.tokens[this.line][this.index], "Wrong Function declaration Syntax", "Close", "Comma");
+    this.index += this.tokens[this.line][this.index].type.includes("Comma");
   }
-
   return params;
-
-  // Additional params
-  function isInclude({ type }, ...arr) {
-    for (let i of arr) if (type.includes(i)) return true;
-    return false;
-  }
 }
 
 function parseFunc() {
-  let { line } = this.tokens[this.index++];
+  // Delete all spaces
+  this.tokens[this.line].push(...this.tokens[this.line].splice(this.index).filter((token) => token.type != "Space"));
+  this.stateChecker("type", this.tokens[this.line][this.index], "Wrong Function Declaration", "Variable");
+  let { value } = this.tokens[this.line][this.index++];
 
-  if (!this.checkExp(this.tokens[this.index++], "Space", line)) this.errorMessageHandler(`Start Function not define`, this.tokens[this.index - 1]);
+  this.stateChecker("type", this.tokens[this.line][this.index++], "Open Parentheses are missing", "Open Parentheses");
 
-  this.deleteSpacesInLine(line);
-  let name = this.tokens[this.index++].value;
+  let params = this.getParams("Variable");
 
-  if (!this.checkExp(this.tokens[this.index++], "Open Parentheses", line))
-    this.errorMessageHandler(`Open Parentheses are missing`, this.tokens[this.index - 1]);
-
-  let params = this.cutParams(line);
-
-  if (!this.checkExp(this.tokens[this.index++], "Close Parentheses", line))
-    this.errorMessageHandler(`Close Parentheses are missing`, this.tokens[this.index - 1]);
-
-  if (!this.checkExp(this.tokens[this.index++], "Start Block", line)) this.errorMessageHandler(`Indented Block is missing`, this.tokens[this.index - 1]);
-
-  return { name: name, params: params };
+  this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
+  this.stateChecker("type", this.tokens[this.line][this.index++], "Indented Block is missing", "Start Block");
+  return { name: value, params: params };
 }
 
 function parseReturn() {
-  let { line } = this.tokens[this.index++];
+  // Delete all spaces
+  this.tokens[this.line].push(...this.tokens[this.line].splice(this.index).filter((token) => token.type != "Space"));
 
-  if (!this.checkExp(this.tokens[this.index++], "Space", line)) this.errorMessageHandler(`Return is not define`, this.tokens[this.index - 1]);
+  // Check the pass keyword, let's check if user put some variable after, if so throw an Error
+  if (this.tokens[this.line][this.index - 1].type.includes("Pass") && this.tokens[this.line][this.index])
+    this.errorMessageHandler("Invalid syntax", this.tokens[this.line][this.index - 1]);
 
-  this.deleteSpacesInLine(line);
-
-  if (!isInclude(this.tokens[this.index], "Variable", "Number", "Char", "String", "Unary", "Parentheses"))
-    this.errorMessageHandler(`Type error`, this.tokens[this.index - 1]);
-
-  this.currLine = line;
-
+  // Check if the function return any of the type, if not then put as a return value '0'
+  let { type } = this.tokens[this.line][this.index] || { type: "" };
+  if (!this.isInclude(type, "Variable", "Number", "Char", "String", "Unary", "Parentheses"))
+    return { type: "RET", Expression: { value: 0, type: "INT", kind: 10 } };
   return { type: "RET", Expression: this.parseExpression({}) };
-
-  // Additional func
-
-  function isInclude({ type }, ...arr) {
-    for (let i of arr) if (type.includes(i)) return true;
-    return false;
-  }
 }
 
 function parseVariable() {
-  let { value, line } = this.tokens[this.index++];
-  this.deleteSpacesInLine(line);
+  // Delete all spaces
+  this.tokens[this.line].push(...this.tokens[this.line].splice(this.index).filter((token) => token.type != "Space"));
+  this.stateChecker("type", this.tokens[this.line][this.index], "Wrong Variable Syntax", "Assignment", "Open Parentheses");
 
-  if (!this.checkExp(this.tokens[this.index++], "Assignment", line)) {
-    if (this.checkExp(this.tokens[this.index - 1], "Open Parentheses", line)) return this.parseFuncCaller(value);
-    else this.errorMessageHandler(`Such syntax is not allowed`, this.tokens[this.index - 1]);
-  }
-
-  if (!isInclude(this.tokens[this.index], "Number", "Char", "String", "Unary", "Parentheses"))
-    this.errorMessageHandler(`Type error`, this.tokens[this.index - 1]);
-
-  this.currLine = line;
-
-  return { type: "VAR", name: value, Expression: this.parseExpression({}) };
-
-  // Additional func
-
-  function isInclude({ type }, ...arr) {
-    for (let i of arr) if (type.includes(i)) return true;
-    return false;
-  }
+  if (this.tokens[this.line][this.index].type.includes("Assignment")) return this.parseVariableAssign();
+  return this.parseFuncCaller();
 }
 
-function parseFuncCaller(name) {
-  let { line } = this.tokens[this.index];
+function parseVariableAssign() {
+  let { value } = this.tokens[this.line][this.index - 1];
+  this.stateChecker("type", this.tokens[this.line][++this.index], "Type error", "Variable", "Number", "Char", "String", "Unary", "Parentheses");
+  return { type: "VAR", name: value, Expression: this.parseExpression({}) };
+}
 
-  let params = this.cutParams(line);
+function parseFuncCaller() {
+  let { value } = this.tokens[this.line][this.index - 1];
+  this.index++;
 
-  // Should handle Values input!!
-  if (!this.checkExp(this.tokens[this.index++], "Close Parentheses", line))
-    this.errorMessageHandler(`Close Parentheses are missing`, this.tokens[this.index - 1]);
+  // TODO: params, I don't know should I declare each params as own Expression, because it's seems like that
+  // But for now it would be a simple declaration
+  // let params = [];
+  let params = this.getParams("Variable", "Number", "Char", "String", "Unary", "Parentheses");
 
-  return { type: "FUNC_CALL", name: name, params: params };
+  // TODO: Check if you can call a function
+
+  this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
+  return { type: "FUNC_CALL", name: value, params: params };
 }
 
 exports.parseFunc = parseFunc;
 exports.parseFuncCaller = parseFuncCaller;
 exports.parseReturn = parseReturn;
 exports.parseVariable = parseVariable;
-exports.cutParams = cutParams;
-exports.checkExp = checkExp;
+exports.parseVariableAssign = parseVariableAssign;
+exports.getParams = getParams;
+exports.stateChecker = stateChecker;

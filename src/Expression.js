@@ -6,11 +6,11 @@
  * @param sign     --   is NegSign out of parentheses
  */
 function parseExpression({ params = {}, priority = false, sign = false }) {
-  let { type, line } = this.tokens[this.index] || { type: "", line: -1 };
-  if (line != this.currLine) {
-    this.prevType = undefined;
-    return params;
-  }
+  let { type } = this.tokens[this.line][this.index] || { type: "" };
+  // if (line != this.currLine) {
+  //   this.prevType = undefined;
+  //   return params;
+  // }
 
   switch (type.split(/\ /g)[1] || type) {
     case "String":
@@ -18,7 +18,7 @@ function parseExpression({ params = {}, priority = false, sign = false }) {
     case "Number":
       let constant = this.parseConstExpression();
       this.prevType = this.prevType || constant.type;
-      if (constant.type != this.prevType) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.index - 1]);
+      if (constant.type != this.prevType) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
 
       // Check if priority is important, if not then parser next
       //    else return the const
@@ -26,7 +26,7 @@ function parseExpression({ params = {}, priority = false, sign = false }) {
       else return constant;
 
     case "Variable":
-      let { value } = this.tokens[this.index++];
+      let { value } = this.tokens[this.line][this.index++];
       if (!priority) return this.parseExpression({ params: { value: value, type: "VAR" }, sign: sign });
       return { value: value, type: "VAR" };
 
@@ -49,21 +49,21 @@ function parseExpression({ params = {}, priority = false, sign = false }) {
         if (!priority) return this.parseExpression({ params: this.parseExpression({}), sign: sign });
         else return this.parseExpression({});
       } else if (!params.type) {
-        this.errorMessageHandler(`Wrong arithmetic style`, this.tokens[this.index - 1]);
+        this.errorMessageHandler(`Wrong arithmetic style`, this.tokens[this.line][this.index - 1]);
       } else {
         this.parenthesesCounter--;
         return params;
       }
 
     default:
-      if (!params.type) this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.index - 1]);
+      if (!params.type) this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.line][this.index - 1]);
   }
 
-  // return params;
+  return params;
 }
 
 function parseConstExpression() {
-  let { value, type } = this.tokens[this.index++];
+  let { value, type } = this.tokens[this.line][this.index++];
 
   // Type converting
   switch (type.split(/\ /g)[0] || type) {
@@ -95,11 +95,11 @@ function parseConstExpression() {
       return { value: value, type: "STR" };
   }
 
-  this.errorMessageHandler(`Convert Type Error`, this.tokens[this.index - 1]);
+  this.errorMessageHandler(`Convert Type Error`, this.tokens[this.line][this.index - 1]);
 }
 
 function parseUnaryExpression(priority, sign) {
-  let { value, type } = this.tokens[this.index++];
+  let { value, type } = this.tokens[this.line][this.index++];
 
   if (!priority)
     return this.parseExpression({ params: { type: "Unary Operation", value: value, exp: this.parseExpression({ priority: true, sign: sign }) }, sign: sign });
@@ -107,10 +107,10 @@ function parseUnaryExpression(priority, sign) {
 }
 
 function parserOperatorExpression(params, sign) {
-  let { value, type } = this.tokens[this.index++];
+  let { value, type } = this.tokens[this.line][this.index++];
 
   // Check if left is not an empty Object, else it's an Error!
-  if (!params.type) this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.index - 1]);
+  if (!params.type) this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.line][this.index - 1]);
 
   switch (type.split(/\ /g)[0] || type) {
     case "Power":
