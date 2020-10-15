@@ -41,8 +41,8 @@ function parseReturn() {
   // Check if the function return any of the type, if not then put as a return value '0'
   let { type } = this.tokens[this.line][this.index] || { type: "" };
   if (!this.isInclude(type, "Variable", "Number", "Char", "String", "Unary", "Parentheses"))
-    return { type: "RET", Expression: { value: 0, type: "INT", kind: 10 } };
-  return { type: "RET", Expression: this.parseExpression({}) };
+    return { type: "RET", Expression: { value: 0, type: "INT", kind: 10 }, defined: "INT" };
+  return { type: "RET", Expression: this.parseExpression({}), defined: this.prevType };
 }
 
 function parseVariable() {
@@ -57,7 +57,7 @@ function parseVariable() {
 function parseVariableAssign() {
   let { value } = this.tokens[this.line][this.index - 1];
   this.stateChecker("type", this.tokens[this.line][++this.index], "Type error", "Variable", "Number", "Char", "String", "Unary", "Parentheses");
-  return { type: "VAR", name: value, Expression: this.parseExpression({}) };
+  return { type: "VAR", name: value, Expression: this.parseExpression({}), defined: this.prevType };
 }
 
 function parseFuncCaller() {
@@ -69,10 +69,11 @@ function parseFuncCaller() {
   // let params = [];
   let params = this.getParams("Variable", "Number", "Char", "String", "Unary", "Parentheses");
 
-  // TODO: Check if you can call a function
+  // TODO: To write some code that could handle a situation where the user don't declare any return value in the function
+  let type = this.getDefinedToken("Statement", "type", "RET", this.getDefinedToken("Declaration", "name", value, this.currLevel)).defined;
 
   this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
-  return { type: "FUNC_CALL", name: value, params: params };
+  return { type: "FUNC_CALL", name: value, params: params, defined: type };
 }
 
 exports.parseFunc = parseFunc;

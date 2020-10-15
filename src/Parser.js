@@ -13,7 +13,11 @@ class Parser {
 
     this.line = 0; // Curr line
     this.index = 0; // Curr Index for tokens
-    this.currLevel = 0; // Define Statement Depth
+    this.currLevel = {
+      level: 0, // Define Statement Depth
+      header: [], // Put created upper head variables in header
+      body: [],
+    };
   }
 
   inputModule(mod) {
@@ -22,7 +26,7 @@ class Parser {
 
   start() {
     try {
-      this.syntaxTree = { type: "Program", body: this.initStateMachine() };
+      this.initStateMachine();
 
       if (this.parenthesesCounter)
         this.errorMessageHandler(`Missed ${this.parenthesesCounter > 0 ? "Closing" : "Opening"} Parentheses`, this.tokens[this.index - 1]);
@@ -31,6 +35,8 @@ class Parser {
       this.syntaxTree = undefined;
       return {};
     }
+
+    this.syntaxTree = { type: "Program", body: this.currLevel.body };
 
     console.log();
     console.dir(this.syntaxTree, { depth: null });
@@ -52,52 +58,76 @@ class Parser {
       case "Function":
         console.log(`FUNCTION: LEVEL ${level}`, this.tokens[this.line][this.index]);
 
-        if (!checkLevel.call(this, level, forcedBlock)) return [];
-        this.currLevel++;
+        if (!checkLevel.call(this, level, forcedBlock)) return;
         this.index++;
+        this.currLevel.level++;
+        this.currLevel.body.push({ Declaration: { type: "FUNC", ...this.parseFunc() } });
 
-        let func = { type: "FUNC", ...this.parseFunc(), body: [...this.initStateMachine(level + 1, true)] };
-        // console.dir(func, { depth: null });
-        return [{ Declaration: func }, ...this.initStateMachine(level)];
+        // Save previous data
+        let header = JSON.parse(JSON.stringify(this.currLevel.header));
+        let body = JSON.parse(JSON.stringify(this.currLevel.body));
+
+        // TODO: Not the best solution, have some issues
+        // Put created upper head variables in header
+        this.currLevel.header.push(...this.currLevel.body);
+        this.currLevel.body = [];
+
+        // Function this.initStateMachine will always return the undefined state, so I decided to write in such way
+        //  because it's much compact solution, that means that the body value will be this.currLevel.body()
+        body.slice(-1)[0].Declaration.body = this.initStateMachine(level + 1, true) || this.currLevel.body;
+
+        this.currLevel.level--;
+        this.currLevel.header = header;
+        this.currLevel.body = body;
+        break;
 
       case "Pass":
       case "Return":
         console.log(`RETURN:   LEVEL ${level}`, this.tokens[this.line][this.index]);
 
-        if (!checkLevel.call(this, level, forcedBlock)) return [];
+        if (!checkLevel.call(this, level, forcedBlock)) return;
         this.index++;
-        return [{ Statement: this.parseReturn() }, ...this.initStateMachine(level)];
+        this.currLevel.body.push({ Statement: this.parseReturn() });
+        break;
 
       case "Variable":
         console.log(`VARIABLE: LEVEL ${level}`, this.tokens[this.line][this.index]);
-        if (!checkLevel.call(this, level, forcedBlock)) return [];
+        if (!checkLevel.call(this, level, forcedBlock)) return;
         this.index++;
-        return [{ Statement: this.parseVariable() }, ...this.initStateMachine(level)];
+        this.currLevel.body.push({ Statement: this.parseVariable() });
+        break;
 
       case "Block":
         console.log(`BLOCK: \t  LEVEL ${level}`);
         this.index++;
-        return this.initStateMachine(level + 1, forcedBlock);
+        this.initStateMachine(level + 1, forcedBlock);
+        return;
 
       case "NEXT":
         this.line++;
         this.index = 0;
-        return this.initStateMachine(0, forcedBlock);
+        this.initStateMachine(0, forcedBlock);
+        return;
 
       case "EOF":
-        return [];
+        return;
 
       default:
         this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.line][this.index]);
     }
 
-    // Addition Functions
-    function checkLevel(level, force) {
-      if (this.currLevel - level < 0 || (force && this.currLevel != level)) this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.line][this.index]);
+    this.initStateMachine(level);
 
-      if (this.currLevel - level != 0) {
-        console.log(`CHANGE LEVEL FROM ${this.currLevel} TO ${level}`);
-        this.currLevel = level;
+    //
+    // Addition Functions
+    //
+    function checkLevel(level, force) {
+      if (this.currLevel.level - level < 0 || (force && this.currLevel.level != level))
+        this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.line][this.index]);
+
+      if (this.currLevel.level - level != 0) {
+        console.log(`CHANGE LEVEL FROM ${this.currLevel.level} TO ${level}`);
+        // this.currLevel.level = level;
         return false;
       }
 
@@ -108,6 +138,19 @@ class Parser {
   isInclude(type, ...arr) {
     for (let i of arr) if (type.includes(i)) return true;
     return false;
+  }
+
+  getDefinedToken(type, key, value, { body = [], header = [] }) {
+    // Get all data that already defined
+    let defined = [...body, ...header];
+
+    // Check if variable is defined in the body or in the header (in the prev level)
+    let index = defined.map((obj) => obj[type] && obj[type][key]).lastIndexOf(value);
+
+    // If the variables is not defined then throw an Error
+    if (index == -1) this.errorMessageHandler(`Variable ${value} is not defined`, this.tokens[this.line][this.index - 1]);
+
+    return defined[index][type];
   }
 
   getTree() {

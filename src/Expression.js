@@ -27,7 +27,12 @@ function parseExpression({ params = {}, priority = false, sign = false }) {
 
     case "Variable":
       let { value } = this.tokens[this.line][this.index++];
-      if (!priority) return this.parseExpression({ params: { value: value, type: "VAR" }, sign: sign });
+      let varType = this.getDefinedToken("Statement", "name", value, this.currLevel).defined;
+
+      this.prevType = this.prevType || varType;
+      if (varType != this.prevType) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
+
+      if (!priority) return this.parseExpression({ params: { value: value, type: "VAR", defined: varType }, sign: sign });
       return { value: value, type: "VAR" };
 
     case "Unary":
