@@ -2,11 +2,24 @@
   "Power Operator": 1,
   "Mult Operator": 2,
   "Div Operator": 2,
+  "Module Operator": 2,
 
   "Neg Unary Operator": 3,
   "Add Operator": 4,
 
-  "AND Operator Keyword": 5,
-  "XOR Operator Keyword": 6,
-  "OR Operator Keyword": 7
+  "Bitwise Right": 5,
+  "Bitwise Left": 5,
+
+  "AND Operator Bitwise": 6,
+  "XOR Operator Bitwise": 7,
+  "OR Operator Bitwise": 8,
+
+  " Operator Equal To": 9,
+  " Operator More Than": 9,
+  " Operator More Than or Equal": 9,
+  " Operator Less Than": 9,
+  " Operator Less Than or Equal": 9,
+
+  "AND Operator Keyword": 10,
+  "OR Operator Keyword": 11
 }
