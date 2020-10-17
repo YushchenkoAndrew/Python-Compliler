@@ -19,18 +19,18 @@ I created this repo for project's version control, and for saving my current pro
   - [ ] Subtraction
   - [x] Multiplication
   - [x] Division
-  - [ ] Remainder of the Division
-  - [ ] Logical 'OR'
-  - [ ] Logical 'AND'
-  - [ ] Logical 'XOR'
-  - [ ] Logical 'EQUAL'
-  - [ ] Logical 'LESS'
-  - [ ] Logical 'MORE'
-  - [ ] Bitwise 'OR'
-  - [ ] Bitwise 'AND'
-  - [ ] Bitwise 'XOR'
-  - [ ] Bitwise 'SHIFT RIGHT'
-  - [ ] Bitwise 'SHIFT LEFT'
+  - [x] Remainder of a Division
+  - [x] Logical 'OR'
+  - [x] Logical 'AND'
+  - [x] Logical 'XOR'
+  - [x] Logical 'EQUAL'
+  - [x] Logical 'LESS'
+  - [x] Logical 'MORE'
+  - [x] Bitwise 'OR'
+  - [x] Bitwise 'AND'
+  - [x] Bitwise 'XOR'
+  - [x] Bitwise 'SHIFT RIGHT'
+  - [x] Bitwise 'SHIFT LEFT'
 - [x] Unary Operations
   - [x] Negation
   - [x] Logical negation
@@ -39,7 +39,7 @@ I created this repo for project's version control, and for saving my current pro
   - [x] MASM32 Code Generator
   - [ ] C Code Generator
   - [ ] Assembler (ARM) Code Generator
-- [ ] Variable assignment
+- [x] Variable assignment
 - [ ] If statement
 - [ ] Function handler
 - [ ] Unit test
