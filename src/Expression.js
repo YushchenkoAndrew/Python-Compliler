@@ -15,8 +15,8 @@ function parseExpression({ params = {}, priority }) {
     case "Char":
     case "Number":
       let constant = this.parseConstExpression();
-      this.prevType = this.prevType || constant.type;
-      if (constant.type != this.prevType) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
+      this.prevType = this.prevType || constant.kind ? { type: constant.type, kind: constant.kind } : { type: constant.type };
+      if (constant.type != this.prevType.type) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
 
       // If this.ast is not define then call parseExpression, it's need for start
       // up the recursion
@@ -30,7 +30,7 @@ function parseExpression({ params = {}, priority }) {
       let varType = this.getDefinedToken("Statement", "name", value, this.currLevel).defined;
 
       this.prevType = this.prevType || varType;
-      if (varType != this.prevType) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
+      if (varType.type != this.prevType.type) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
 
       if (!this.ast && priority != -1) return this.parseExpression({ params: { value: value, type: "VAR", defined: varType } });
       return { value: value, type: "VAR", defined: varType };
@@ -42,9 +42,9 @@ function parseExpression({ params = {}, priority }) {
 
       if (!this.ast)
         return this.parseExpression({
-          params: { type: "Unary Operation", value: this.tokens[this.line][this.index++], exp: this.parseExpression({ priority: -1 }) },
+          params: { type: "Unary Operation", value: this.tokens[this.line][this.index++].value, exp: this.parseExpression({ priority: -1 }) },
         });
-      return { type: "Unary Operation", value: this.tokens[this.line][this.index++], exp: this.parseExpression({ priority: priority }) };
+      return { type: "Unary Operation", value: this.tokens[this.line][this.index++].value, exp: this.parseExpression({ priority: priority }) };
 
     case "Operator":
       let currPriority = priorityTable[type];
