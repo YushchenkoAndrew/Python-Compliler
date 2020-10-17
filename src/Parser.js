@@ -44,8 +44,8 @@ class Parser {
     return this.syntaxTree;
   }
 
-  errorMessageHandler(message, { line, char }) {
-    throw Error(`${message}. Error in line ${line + 1}, col ${char + 1}`);
+  errorMessageHandler(message, { char = this.tokens[this.line][this.index - 1].char }) {
+    throw Error(`${message}. Error in line ${this.line + 1}, col ${char}`);
   }
 
   initStateMachine(level = 0, forcedBlock = false) {

@@ -4,5 +4,9 @@
   "Div Operator": 2,
 
   "Neg Unary Operator": 3,
-  "Add Operator": 4
+  "Add Operator": 4,
+
+  "AND Operator Keyword": 5,
+  "XOR Operator Keyword": 6,
+  "OR Operator Keyword": 7
 }

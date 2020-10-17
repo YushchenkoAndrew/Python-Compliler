@@ -9,10 +9,6 @@ var priorityTable = require("./PriorityTable.json");
  */
 function parseExpression({ params = {}, priority }) {
   let { type } = this.tokens[this.line][this.index] || { type: "LINE_END" };
-  // if (line != this.currLine) {
-  //   this.prevType = undefined;
-  //   return params;
-  // }
 
   switch (type.split(/\ /g)[1] || type) {
     case "String":
@@ -22,13 +18,10 @@ function parseExpression({ params = {}, priority }) {
       this.prevType = this.prevType || constant.type;
       if (constant.type != this.prevType) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
 
-      // Check if priority is important, if not then parser next
-      //    else return the const
-      // if (!priority) return this.parseExpression({ params: constant});
-      // else return constant;
-      if (this.ast || priority == -1) return constant;
-      return this.parseExpression({ params: constant, priority: priority });
-    // return constant;
+      // If this.ast is not define then call parseExpression, it's need for start
+      // up the recursion
+      if (!this.ast && priority != -1) return this.parseExpression({ params: constant });
+      return constant;
 
     case "Variable":
       let { value } = this.tokens[this.line][this.index++];
@@ -39,55 +32,35 @@ function parseExpression({ params = {}, priority }) {
       this.prevType = this.prevType || varType;
       if (varType != this.prevType) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
 
-      if (this.ast || priority == -1) return { value: value, type: "VAR" };
-      return this.parseExpression({ params: { value: value, type: "VAR", defined: varType }, priority: priority });
+      if (!this.ast && priority != -1) return this.parseExpression({ params: { value: value, type: "VAR", defined: varType } });
+      return { value: value, type: "VAR", defined: varType };
 
     case "Unary":
       // Check if prev value is an another exp, if not then "-" is a Unary Operation
       //    else Binary Operation
-      // if (!params.type) return this.parseUnaryExpression(priority);
-      // let operator = t
-      // console.log(unary);
-      if (this.ast || priority == -1)
-        return { type: "Unary Operation", value: this.tokens[this.line][this.index++], exp: this.parseExpression({ priority: -1, unary: true }) };
-      return this.parseExpression({
-        params: { type: "Unary Operation", value: this.tokens[this.line][this.index++], exp: this.parseExpression({ priority: -1, unary: true }) },
-        priority: priority,
-        unary: false,
-      });
+      // TODO: handle Negative Unary Sign and Negative Operation
 
-    // let unaryOp = this.tokens[this.line][this.index++].value;
-    // { type: "Unary Operation", value: unaryOp, exp: this.parseExpression({ priority: -1 }) };
-    // let temp = this.parseUnaryExpression(priority);
-    // if (this.ast || priority == -1) return unary;
-    // return this.parseExpression({ params: temp, priority: priority });
+      if (!this.ast)
+        return this.parseExpression({
+          params: { type: "Unary Operation", value: this.tokens[this.line][this.index++], exp: this.parseExpression({ priority: -1 }) },
+        });
+      return { type: "Unary Operation", value: this.tokens[this.line][this.index++], exp: this.parseExpression({ priority: priority }) };
 
     case "Operator":
       let currPriority = priorityTable[type];
       let operator = this.tokens[this.line][this.index++].value;
 
       this.ast = this.ast || { type: "Binary Operation", value: operator, left: params, right: undefined, priority: currPriority };
+      let right = this.parseExpression({ priority: currPriority });
+      this.stateChecker("type", right, "Such arithmetic syntax don't allow", "INT", "STR", "FLOAT", "VAR", "Unary");
 
       // Initialize a basic AST if the AST is not define
       if (!priority) {
-        this.ast.right = this.parseExpression({ priority: currPriority });
-
-        // TODO: Create simplified version
-        // Error handler
-        if (!this.isInclude(this.ast.right.type, "INT", "STR", "FLOAT", "VAR", "Unary"))
-          this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.line][this.index - 1]);
-
-        this.parseExpression({ priority: currPriority });
-        break;
+        this.ast.right = right;
+        return this.parseExpression({ priority: currPriority });
       }
 
-      let right = this.parseExpression({ priority: currPriority });
       let branch = getLastBrach("right", currPriority, this.ast);
-
-      // TODO: Create simplified version
-      // Error handler
-      if (!this.isInclude(right.type, "INT", "STR", "FLOAT", "VAR", "Unary"))
-        this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.line][this.index - 1]);
 
       // 1 * 2 + 3
       if (priority - currPriority <= 0) {
@@ -101,8 +74,7 @@ function parseExpression({ params = {}, priority }) {
       // 1 + 2 * 3
       else branch.right = { type: "Binary Operation", value: operator, left: branch.right, right: right, priority: currPriority };
 
-      this.parseExpression({ priority: currPriority });
-      break;
+      return this.parseExpression({ priority: currPriority });
 
     // TODO: To implement Parentheses
     // case "Parentheses":
@@ -137,8 +109,6 @@ function parseExpression({ params = {}, priority }) {
         for (let key in data) branch[key] = JSON.parse(JSON.stringify(data[key]));
       }
   }
-
-  return this.ast;
 }
 
 function parseConstExpression() {
