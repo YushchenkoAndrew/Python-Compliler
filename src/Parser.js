@@ -143,9 +143,23 @@ class Parser {
     // Get all data that already defined
     let defined = [...body, ...header];
 
-    // TODO: Check several types
+    // A simple polymorphism, sort of ~
+    if (Array.isArray(type)) return this.getDefinedTokenArray(type, key, value, defined);
+
     // Check if variable is defined in the body or in the header (in the prev level)
     let index = defined.map((obj) => obj[type] && obj[type][key]).lastIndexOf(value);
+
+    // If the variables is not defined then throw an Error
+    if (index == -1) this.errorMessageHandler(`Variable ${value} is not defined`, this.tokens[this.line][this.index - 1]);
+
+    return defined[index][type];
+  }
+
+  getDefinedTokenArray(types, key, value, defined) {
+    for (var type of types) {
+      var index = defined.map((obj) => obj[type] && obj[type][key]).lastIndexOf(value);
+      if (index != -1) break;
+    }
 
     // If the variables is not defined then throw an Error
     if (index == -1) this.errorMessageHandler(`Variable ${value} is not defined`, this.tokens[this.line][this.index - 1]);

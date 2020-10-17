@@ -25,15 +25,22 @@ function parseExpression({ params = {}, priority }) {
 
     case "Variable":
       let { value } = this.tokens[this.line][this.index++];
+      type = "VAR";
 
-      // TODO: Check Function params
-      let varType = this.getDefinedToken("Statement", "name", value, this.currLevel).defined;
+      let varType = this.getDefinedToken(["Statement", "Declaration"], "name", value, this.currLevel);
+
+      // TODO: Create better solution for FUNC_CALL
+      if (varType.type == "FUNC") {
+        type = "FUNC_CALL";
+        varType = this.getDefinedToken("Statement", "type", "RET", varType).defined;
+        this.index += 2;
+      } else varType = varType.defined;
 
       this.prevType = this.prevType || varType;
       if (varType.type != this.prevType.type) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
 
-      if (!this.ast && priority != -1) return this.parseExpression({ params: { value: value, type: "VAR", defined: varType } });
-      return { value: value, type: "VAR", defined: varType };
+      if (!this.ast && priority != -1) return this.parseExpression({ params: { value: value, type: type, defined: varType } });
+      return { value: value, type: type, defined: varType };
 
     case "Unary":
       // Check if prev value is an another exp, if not then "-" is a Unary Operation

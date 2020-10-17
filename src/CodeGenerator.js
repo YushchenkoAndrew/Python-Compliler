@@ -113,6 +113,14 @@ class Generator {
             this.proc.body.push(`PUSH _${value}`);
             break;
 
+          // TODO: Finish this in a future...
+          case "FUNC_CALL":
+            let body = this.proc.header[0] ? this.proc.body : this.code.start;
+            body.push(`invoke ${"_" + tree.value}`);
+            body.push(`PUSH EAX`);
+            this.setOutput(tree.defined, body);
+            break;
+
           case "Binary Operation":
             this.redirect(name, tree.left);
             this.redirect(name, tree.right);
