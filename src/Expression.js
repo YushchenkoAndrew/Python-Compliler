@@ -1,3 +1,5 @@
+var priorityTable = require("./PriorityTable.json");
+
 /**
  *
  * @param {*} param0
@@ -5,8 +7,8 @@
  * @param priority --   priority is important
  * @param sign     --   is NegSign out of parentheses
  */
-function parseExpression({ params = {}, priority = false, sign = false }) {
-  let { type } = this.tokens[this.line][this.index] || { type: "" };
+function parseExpression({ params = {}, priority }) {
+  let { type } = this.tokens[this.line][this.index] || { type: "LINE_END" };
   // if (line != this.currLine) {
   //   this.prevType = undefined;
   //   return params;
@@ -22,49 +24,121 @@ function parseExpression({ params = {}, priority = false, sign = false }) {
 
       // Check if priority is important, if not then parser next
       //    else return the const
-      if (!priority) return this.parseExpression({ params: constant, sign: sign });
-      else return constant;
+      // if (!priority) return this.parseExpression({ params: constant});
+      // else return constant;
+      if (this.ast || priority == -1) return constant;
+      return this.parseExpression({ params: constant, priority: priority });
+    // return constant;
 
     case "Variable":
       let { value } = this.tokens[this.line][this.index++];
+
+      // TODO: Check Function params
       let varType = this.getDefinedToken("Statement", "name", value, this.currLevel).defined;
 
       this.prevType = this.prevType || varType;
       if (varType != this.prevType) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
 
-      if (!priority) return this.parseExpression({ params: { value: value, type: "VAR", defined: varType }, sign: sign });
-      return { value: value, type: "VAR" };
+      if (this.ast || priority == -1) return { value: value, type: "VAR" };
+      return this.parseExpression({ params: { value: value, type: "VAR", defined: varType }, priority: priority });
 
     case "Unary":
       // Check if prev value is an another exp, if not then "-" is a Unary Operation
       //    else Binary Operation
-      if (!params.type) return this.parseUnaryExpression(priority, sign);
+      // if (!params.type) return this.parseUnaryExpression(priority);
+      // let operator = t
+      // console.log(unary);
+      if (this.ast || priority == -1)
+        return { type: "Unary Operation", value: this.tokens[this.line][this.index++], exp: this.parseExpression({ priority: -1, unary: true }) };
+      return this.parseExpression({
+        params: { type: "Unary Operation", value: this.tokens[this.line][this.index++], exp: this.parseExpression({ priority: -1, unary: true }) },
+        priority: priority,
+        unary: false,
+      });
+
+    // let unaryOp = this.tokens[this.line][this.index++].value;
+    // { type: "Unary Operation", value: unaryOp, exp: this.parseExpression({ priority: -1 }) };
+    // let temp = this.parseUnaryExpression(priority);
+    // if (this.ast || priority == -1) return unary;
+    // return this.parseExpression({ params: temp, priority: priority });
 
     case "Operator":
-      return this.parserOperatorExpression(params, sign);
+      let currPriority = priorityTable[type];
+      let operator = this.tokens[this.line][this.index++].value;
 
-    case "Parentheses":
-      this.index++;
-      // Check if it Open Parentheses, if so then check next element
-      //    else if it Close, then return created value
-      if (type.includes("Open")) {
-        this.parenthesesCounter++;
-        // Check if priority is important, if not then parser next
-        //    else return the value in a Parentheses
-        if (!priority) return this.parseExpression({ params: this.parseExpression({}), sign: sign });
-        else return this.parseExpression({});
-      } else if (!params.type) {
-        this.errorMessageHandler(`Wrong arithmetic style`, this.tokens[this.line][this.index - 1]);
-      } else {
-        this.parenthesesCounter--;
-        return params;
+      this.ast = this.ast || { type: "Binary Operation", value: operator, left: params, right: undefined, priority: currPriority };
+
+      // Initialize a basic AST if the AST is not define
+      if (!priority) {
+        this.ast.right = this.parseExpression({ priority: currPriority });
+
+        // TODO: Create simplified version
+        // Error handler
+        if (!this.isInclude(this.ast.right.type, "INT", "STR", "FLOAT", "VAR", "Unary"))
+          this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.line][this.index - 1]);
+
+        this.parseExpression({ priority: currPriority });
+        break;
       }
+
+      let right = this.parseExpression({ priority: currPriority });
+      let branch = getLastBrach("right", currPriority, this.ast);
+
+      // TODO: Create simplified version
+      // Error handler
+      if (!this.isInclude(right.type, "INT", "STR", "FLOAT", "VAR", "Unary"))
+        this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.line][this.index - 1]);
+
+      // 1 * 2 + 3
+      if (priority - currPriority <= 0) {
+        if (branch && priority != currPriority)
+          branch.right = { type: "Binary Operation", value: operator, left: branch.right, right: right, priority: currPriority };
+        else {
+          branch = branch || this.ast;
+          updateBranch(branch, { type: "Binary Operation", value: operator, left: branch, right: right, priority: currPriority });
+        }
+      }
+      // 1 + 2 * 3
+      else branch.right = { type: "Binary Operation", value: operator, left: branch.right, right: right, priority: currPriority };
+
+      this.parseExpression({ priority: currPriority });
+      break;
+
+    // TODO: To implement Parentheses
+    // case "Parentheses":
+    //   this.index++;
+    //   // Check if it Open Parentheses, if so then check next element
+    //   //    else if it Close, then return created value
+    //   if (type.includes("Open")) {
+    //     this.parenthesesCounter++;
+    //     // Check if priority is important, if not then parser next
+    //     //    else return the value in a Parentheses
+    //     if (!priority) return this.parseExpression({ params: this.parseExpression({}), sign: sign });
+    //     else return this.parseExpression({});
+    //   } else if (!params.type) {
+    //     this.errorMessageHandler(`Wrong arithmetic style`, this.tokens[this.line][this.index - 1]);
+    //   } else {
+    //     this.parenthesesCounter--;
+    //     return params;
+    //   }
+
+    case "LINE_END":
+      return this.ast || params;
 
     default:
       if (!params.type) this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.line][this.index - 1]);
+
+      function getLastBrach(key, priority, branch) {
+        return branch[key] && branch.priority >= priority ? getLastBrach(key, priority, branch[key]) || branch : undefined;
+      }
+
+      function updateBranch(branch, data) {
+        data = JSON.parse(JSON.stringify(data));
+        for (let key in data) branch[key] = JSON.parse(JSON.stringify(data[key]));
+      }
   }
 
-  return params;
+  return this.ast;
 }
 
 function parseConstExpression() {
@@ -103,46 +177,5 @@ function parseConstExpression() {
   this.errorMessageHandler(`Convert Type Error`, this.tokens[this.line][this.index - 1]);
 }
 
-function parseUnaryExpression(priority, sign) {
-  let { value, type } = this.tokens[this.line][this.index++];
-
-  if (!priority)
-    return this.parseExpression({ params: { type: "Unary Operation", value: value, exp: this.parseExpression({ priority: true, sign: sign }) }, sign: sign });
-  else return { type: "Unary Operation", value: value, exp: this.parseExpression({ priority: true, sign: sign }) };
-}
-
-function parserOperatorExpression(params, sign) {
-  let { value, type } = this.tokens[this.line][this.index++];
-
-  // Check if left is not an empty Object, else it's an Error!
-  if (!params.type) this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.line][this.index - 1]);
-
-  switch (type.split(/\ /g)[0] || type) {
-    case "Power":
-    case "Div":
-    case "Mult":
-      return this.parseExpression({
-        params: { type: "Binary Operation", value: value, left: params, right: this.parseExpression({ priority: true, sign: sign }) },
-        sign: sign,
-      });
-
-    case "Neg":
-      if (sign) value = "+";
-      else sign ^= true;
-      break;
-
-    case "Add":
-      if (sign) {
-        value = "-";
-        sign ^= true;
-      }
-      break;
-  }
-
-  return { type: "Binary Operation", value: value, left: params, right: this.parseExpression({ sign: sign }) };
-}
-
 exports.parseExpression = parseExpression;
 exports.parseConstExpression = parseConstExpression;
-exports.parseUnaryExpression = parseUnaryExpression;
-exports.parserOperatorExpression = parserOperatorExpression;

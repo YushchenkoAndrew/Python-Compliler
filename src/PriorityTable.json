@@ -1,0 +1,8 @@
+{
+  "Power Operator": 1,
+  "Mult Operator": 2,
+  "Div Operator": 2,
+
+  "Neg Unary Operator": 3,
+  "Add Operator": 4
+}

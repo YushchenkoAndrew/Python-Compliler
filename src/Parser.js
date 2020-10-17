@@ -48,11 +48,10 @@ class Parser {
     throw Error(`${message}. Error in line ${line + 1}, col ${char + 1}`);
   }
 
-  // TODO: Create an Object of current body for searching some variables and functions
-
   initStateMachine(level = 0, forcedBlock = false) {
     let { type } = this.tokens[this.line][this.index] || { type: this.tokens[this.line + 1] ? "NEXT" : "EOF" };
     this.prevType = undefined;
+    this.ast = undefined;
 
     switch (type.split(" ")[0]) {
       case "Function":
