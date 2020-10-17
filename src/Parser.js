@@ -143,6 +143,7 @@ class Parser {
     // Get all data that already defined
     let defined = [...body, ...header];
 
+    // TODO: Check several types
     // Check if variable is defined in the body or in the header (in the prev level)
     let index = defined.map((obj) => obj[type] && obj[type][key]).lastIndexOf(value);
 
