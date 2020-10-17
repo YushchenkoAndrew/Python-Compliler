@@ -16,7 +16,7 @@ I created this repo for project's version control, and for saving my current pro
   - [x] HEX
 - [ ] Binary Operations
   - [x] Addition
-  - [x] Subtraction
+  - [ ] Subtraction
   - [x] Multiplication
   - [x] Division
   - [ ] Remainder of the Division
