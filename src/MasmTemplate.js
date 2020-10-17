@@ -15,6 +15,7 @@ $HEADER
 .const
 $CONST
 .data
+VALUE dd 0
 $DATA
 
 .code

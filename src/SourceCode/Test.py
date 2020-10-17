@@ -1,6 +1,6 @@
 def main():
-    # Testing
-    a = 5
-    return 5 + 5
+    a = 6
+    return a % 2 or 5 and 2 < 3
 
 main()
+# main2(1)
