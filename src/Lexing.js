@@ -13,7 +13,7 @@ class Lexing {
     // Additional Functions
     function textFiltration(text) {
       return text.split("\n").map((line) => {
-        line = `${line} `.slice(0, line.indexOf("#"));
+        line = `${line}_`.slice(0, line.indexOf("#"));
 
         // Delete Commentaries on top of that if line become empty
         // after deleting commentary that it will 'erase' it

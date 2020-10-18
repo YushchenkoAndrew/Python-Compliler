@@ -53,7 +53,7 @@ class Parser {
     this.prevType = undefined;
     this.ast = undefined;
 
-    switch (type.split(" ")[0]) {
+    switch (type.split(/\ /)[0]) {
       case "Function":
         console.log(`FUNCTION: LEVEL ${level}`, this.tokens[this.line][this.index]);
 
