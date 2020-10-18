@@ -77,7 +77,7 @@ class Generator {
           case "VAR":
             // TODO:
             // Initialize variable
-            if (!this.isInclude(this.proc.header, ` _${tree.name} `)) this.proc.header.push(`LOCAL _${tree.name} :DWORD`);
+            if (!this.isInclude(this.proc.header, `\ _${tree.name}:`)) this.proc.header.push(`LOCAL _${tree.name}:DWORD`);
             this.redirect("Expression", tree.Expression);
             this.proc.body.push(`POP _${tree.name}`);
 
