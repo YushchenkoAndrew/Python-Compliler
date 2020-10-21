@@ -14,8 +14,9 @@ function parseExpression({ params = {}, priority }) {
     case "String":
     case "Char":
     case "Number":
+      // TODO: To create a normal result for different types with Binary Operation '==', 'or', 'and'
       let constant = this.parseConstExpression();
-      this.prevType = this.prevType || constant.kind ? { type: constant.type, kind: constant.kind } : { type: constant.type };
+      this.prevType = this.prevType || (constant.kind ? { type: constant.type, kind: constant.kind } : { type: constant.type });
       if (constant.type != this.prevType.type) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
 
       // If this.ast is not define then call parseExpression, it's need for start
