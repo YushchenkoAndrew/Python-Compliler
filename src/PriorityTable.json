@@ -7,8 +7,8 @@
   "Neg Unary Operator": 3,
   "Add Operator": 4,
 
-  "Bitwise Right": 5,
-  "Bitwise Left": 5,
+  " Operator Bitwise Right": 5,
+  " Operator Bitwise Left": 5,
 
   "AND Operator Bitwise": 6,
   "XOR Operator Bitwise": 7,

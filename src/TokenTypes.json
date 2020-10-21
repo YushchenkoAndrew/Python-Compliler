@@ -14,8 +14,8 @@
   "^": "XOR Operator Bitwise",
   "|": "OR Operator Bitwise",
 
-  ">>": "Bitwise Right",
-  "<<": "Bitwise Left",
+  ">>": " Operator Bitwise Right",
+  "<<": " Operator Bitwise Left",
 
   "==": " Operator Equal To",
   ">": " Operator More Than",
