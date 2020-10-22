@@ -165,6 +165,7 @@ class Generator {
         this.proc.body.push(`PUSH 0${tree.value}`);
         break;
 
+      // TODO: Think about changing creating string as a pointer but create it as array of char
       case "STR":
         let name = "TEMP" + parseInt(Math.random() * 100);
         this.code.data.push(`${name} db "${tree.value}", 0`);

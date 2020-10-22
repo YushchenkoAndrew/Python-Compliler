@@ -11,8 +11,7 @@ include \masm32\include\user32.inc
 includelib \masm32\lib\user32.lib
 
 NumToStr PROTO :DWORD,:DWORD
-_one PROTO
-_main PROTO
+__main PROTO
 .const
 
 .data
@@ -41,49 +40,11 @@ NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
 NumToStr ENDP
 
 
-_one PROC
-	LOCAL _a :DWORD
-	PUSH 01
-	POP _a
-	PUSH _a
-	PUSH 01
-	POP EBX
-	POP ECX
-	ADD ECX, EBX
-	PUSH ECX
-	POP _a
-	PUSH _a
-	POP EAX
+__main PROC
 	RET
-_one ENDP
-_main PROC
-	LOCAL _a :DWORD
-	PUSH 05
-	POP _a
-	invoke _one
-	PUSH EAX
-	MOV VALUE, 010
-	invoke NumToStr, EAX, ADDR Output
-	invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0
-	PUSH 02
-	POP EBX
-	POP ECX
-	MOV EAX, ECX
-	MUL EBX
-	PUSH EAX
-	PUSH 02
-	POP EBX
-	POP ECX
-	ADD ECX, EBX
-	PUSH ECX
-	POP EAX
-	RET
-_main ENDP
+__main ENDP
 
 start:
-	invoke _main
-	MOV VALUE, 010
-	invoke NumToStr, EAX, ADDR Output
-	invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0
+	
 	invoke ExitProcess, 0
 end start

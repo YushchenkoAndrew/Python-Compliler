@@ -14,6 +14,7 @@ function parseExpression({ params = {}, priority }) {
     case "String":
     case "Char":
     case "Number":
+      // TODO: Type transformation INT -> FLOAT  and  allowed operation that based on TYPE
       // TODO: To create a normal result for different types with Binary Operation '==', 'or', 'and'
       let constant = this.parseConstExpression();
       this.prevType = this.prevType || (constant.kind ? { type: constant.type, kind: constant.kind } : { type: constant.type });
@@ -28,7 +29,7 @@ function parseExpression({ params = {}, priority }) {
       let { value } = this.tokens[this.line][this.index++];
       type = "VAR";
 
-      let varType = this.getDefinedToken(["Statement", "Declaration"], "name", value, this.currLevel);
+      let varType = this.getDefinedToken(["Statement", "Declaration"], "name", `_${value}`, this.currLevel);
 
       // TODO: Create better solution for FUNC_CALL
       if (varType.type == "FUNC") {
@@ -40,8 +41,8 @@ function parseExpression({ params = {}, priority }) {
       this.prevType = this.prevType || varType;
       if (varType.type != this.prevType.type) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
 
-      if (!this.ast && priority != -1) return this.parseExpression({ params: { value: value, type: type, defined: varType } });
-      return { value: value, type: type, defined: varType };
+      if (!this.ast && priority != -1) return this.parseExpression({ params: { value: `_${value}`, type: type, defined: varType } });
+      return { value: `_${value}`, type: type, defined: varType };
 
     case "Unary":
       // Check if prev value is an another exp, if not then "-" is a Unary Operation
@@ -134,7 +135,7 @@ function parseConstExpression() {
 
     case "Hex":
       if (isNaN(parseInt(value.substr(2), 16))) break;
-      return { value: `${value.substr(2)}H`, type: "INT", kind: 16 };
+      return { value: `0${value.substr(2)}H`, type: "INT", kind: 16 };
 
     case "Float":
       if (parseInt(value) == value) return { value: parseInt(value), type: "INT", kind: "10" };

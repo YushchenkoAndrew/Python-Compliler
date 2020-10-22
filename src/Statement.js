@@ -27,7 +27,7 @@ function parseFunc() {
 
   this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
   this.stateChecker("type", this.tokens[this.line][this.index++], "Indented Block is missing", "Start Block");
-  return { name: value, params: params };
+  return { name: `_${value}`, params: params };
 }
 
 function parseReturn() {
@@ -57,7 +57,7 @@ function parseVariable() {
 function parseVariableAssign() {
   let { value } = this.tokens[this.line][this.index - 1];
   this.stateChecker("type", this.tokens[this.line][++this.index], "Type error", "Variable", "Number", "Char", "String", "Unary", "Parentheses");
-  return { type: "VAR", name: value, Expression: this.parseExpression({}), defined: this.prevType };
+  return { type: "VAR", name: `_${value}`, Expression: this.parseExpression({}), defined: this.prevType };
 }
 
 function parseFuncCaller() {
@@ -70,10 +70,10 @@ function parseFuncCaller() {
   let params = this.getParams("Variable", "Number", "Char", "String", "Unary", "Parentheses");
 
   // TODO: To write some code that could handle a situation where the user don't declare any return value in the function
-  let type = this.getDefinedToken("Statement", "type", "RET", this.getDefinedToken("Declaration", "name", value, this.currLevel)).defined;
+  let type = this.getDefinedToken("Statement", "type", "RET", this.getDefinedToken("Declaration", "name", `_${value}`, this.currLevel)).defined;
 
   this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
-  return { type: "FUNC_CALL", name: value, params: params, defined: type };
+  return { type: "FUNC_CALL", name: `_${value}`, params: params, defined: type };
 }
 
 exports.parseFunc = parseFunc;
