@@ -5,20 +5,20 @@ function parseExpression(tree) {
     // Next left and right values a Constant
     case 0:
       // Save first input const in reg EAX
-      console.log(`MOV EAX, ${tree.left.value}`);
-      this.createCommand(tree)(tree, { src: tree.right.value });
+      this.assignValue(this.func.body, { src: tree.left, dst: "EAX" });
+      this.createCommand(tree)(tree, this.func.body, { src: tree.right });
       break;
 
     // Next Left value is Operation and the right is Constant
     case 1:
       this.parseExpression(tree.left);
-      this.createCommand(tree)(tree, { src: tree.right.value });
+      this.createCommand(tree)(tree, this.func.body, { src: tree.right });
       break;
 
     // Next right value is Operation and the left is Constant
     case 2:
       this.parseExpression(tree.right);
-      this.createCommand(tree)(tree, { src: tree.left.value, dst: "EAX" });
+      this.createCommand(tree)(tree, this.func.body, { src: tree.left, dst: "EAX" });
       break;
 
     // Both left and right are Operations
@@ -34,23 +34,25 @@ function parseExpression(tree) {
         this.regs.inUse.push(reg);
 
         // Store current progress in the reg
-        console.log(`MOV ${reg}, EAX`);
+        this.assignValue(this.func.body, { src: "EAX", dst: reg });
         this.parseExpression(tree.right);
-        this.createCommand(tree)(tree, { src: reg, dst: "EAX" });
+        this.createCommand(tree)(tree, this.func.body, { src: reg, dst: "EAX" });
 
         this.regs.available.push(this.regs.inUse.pop());
         break;
       }
 
       // Else If reg is defined and in used
-      this.createCommand(tree)(tree, { src: "EAX", dst: reg });
+      this.createCommand(tree)(tree, this.func.body, { src: "EAX", dst: reg });
       this.redirect("Expression", tree.right);
 
       break;
   }
 }
 
-function binaryOperation({ value }, { src = 0, dst = "EAX" }) {
+function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
+  src = src.value || src;
+
   switch (value) {
     case "%":
     case "/": {
@@ -59,15 +61,15 @@ function binaryOperation({ value }, { src = 0, dst = "EAX" }) {
       let reg = this.regs.available[0];
 
       // If yes, then save data in the stack
-      if (flag) console.log(`PUSH EDX`);
+      if (flag) body.push(`PUSH EDX`);
 
-      console.log(`XOR EDX, EDX`);
-      console.log(`MOV ${reg}, ${src}`);
-      console.log(`${this.commands[value]} ${reg}`);
-      if (value == "%") console.log(`MOV EAX, EDX`);
+      body.push(`XOR EDX, EDX`);
+      body.push(`MOV ${reg}, ${src}`);
+      body.push(`${this.commands[value]} ${reg}`);
+      if (value == "%") body.push(`MOV EAX, EDX`);
 
       // Get data from the stack
-      if (flag) console.log(`POP EDX`);
+      if (flag) body.push(`POP EDX`);
       break;
     }
 
@@ -77,13 +79,13 @@ function binaryOperation({ value }, { src = 0, dst = "EAX" }) {
       let flag = this.regs.inUse.includes("ECX");
 
       // If yes, then save data in the stack
-      if (flag) console.log(`PUSH ECX`);
+      if (flag) body.push(`PUSH ECX`);
 
-      console.log(`MOV ECX, ${src}`);
-      console.log(`${this.commands[value]} ${dst}, CL`);
+      body.push(`MOV ECX, ${src}`);
+      body.push(`${this.commands[value]} ${dst}, CL`);
 
       // Get data from the stack
-      if (flag) console.log(`POP ECX`);
+      if (flag) body.push(`POP ECX`);
       break;
     }
 
@@ -92,37 +94,42 @@ function binaryOperation({ value }, { src = 0, dst = "EAX" }) {
     case "<":
     case ">=":
     case "<=": {
-      console.log(`; LOGIC "${value}"`);
-      console.log(`CMP ${dst}, ${src}`);
-      console.log(`${this.commands[value]} ${dst[1]}L`); // Set value only in low byte (example: "AL")
-      console.log(`AND ${dst}, 0FFH`); // Save only last byte (example: "AL")
+      body.push("");
+      body.push(`; LOGIC "${value}"`);
+      body.push(`CMP ${dst}, ${src}`);
+      body.push(`${this.commands[value]} ${dst[1]}L`); // Set value only in low byte (example: "AL")
+      body.push(`AND ${dst}, 0FFH`); // Save only last byte (example: "AL")
+      body.push("");
       break;
     }
 
-    // TODO: Think about better solution...
     case "and": {
       let reg = this.regs.available[0];
-      console.log("; Logic AND");
-      console.log(`XOR ${reg}, ${reg}`);
-      console.log(`CMP ${dst}, 00H`);
-      console.log(`SETE ${reg[1]}L`);
-      console.log(`DEC ${reg}`);
-      console.log(`MOV ${dst}, ${src}`);
-      console.log(`AND ${dst}, ${reg}`);
+      body.push("");
+      body.push("; Logic AND");
+      body.push(`XOR ${reg}, ${reg}`);
+      body.push(`CMP ${dst}, 00H`);
+      body.push(`SETE ${reg[1]}L`);
+      body.push(`DEC ${reg}`);
+      body.push(`MOV ${dst}, ${src}`);
+      body.push(`AND ${dst}, ${reg}`);
+      body.push("");
       break;
     }
 
     case "or": {
       let reg = this.regs.available[0];
-      console.log("; Logic OR");
-      console.log(`XOR ${reg}, ${reg}`);
-      console.log(`CMP ${dst}, 00H`);
-      console.log(`SETE ${reg[1]}L`);
-      console.log(`DEC ${reg}`);
-      console.log(`AND ${dst}, ${reg}`);
-      console.log(`XOR ${reg}, 0FFFFFFFFH`);
-      console.log(`AND ${reg}, ${src}`);
-      console.log(`OR ${dst}, ${reg}`);
+      body.push("");
+      body.push("; Logic OR");
+      body.push(`XOR ${reg}, ${reg}`);
+      body.push(`CMP ${dst}, 00H`);
+      body.push(`SETE ${reg[1]}L`);
+      body.push(`DEC ${reg}`);
+      body.push(`AND ${dst}, ${reg}`);
+      body.push(`XOR ${reg}, 0FFFFFFFFH`);
+      body.push(`AND ${reg}, ${src}`);
+      body.push(`OR ${dst}, ${reg}`);
+      body.push("");
       break;
     }
   }
@@ -140,33 +147,29 @@ function binaryOperation({ value }, { src = 0, dst = "EAX" }) {
 //     //   this.proc.body.push(`PUSH ${regs[0]}`);
 //     //   break;
 
-//     // // TODO: Check if reg EDX is save to use
-//     // case "and":
-//     //   this.proc.body.push(`XOR EDX, EDX`);
-//     //   this.proc.body.push(`CMP ${regs[0]}, 00H`);
-//     //   this.proc.body.push(`SETE DL`);
-//     //   this.proc.body.push(`DEC EDX`);
-//     //   this.proc.body.push(`AND ${regs[1]}, EDX`);
-//     //   this.proc.body.push(`PUSH ${regs[1]}`);
-//     //   break;
-
-//     // // TODO: Check if reg EDX is save to use
-//     // case "or":
-//     //   this.proc.body.push(`XOR EDX, EDX`);
-//     //   this.proc.body.push(`CMP ${regs[0]}, 00H`);
-//     //   this.proc.body.push(`SETE DL`);
-//     //   this.proc.body.push(`DEC EDX`);
-//     //   this.proc.body.push(`AND ${regs[0]}, EDX`);
-//     //   this.proc.body.push(`XOR EDX, 0FFFFFFFFH`);
-//     //   this.proc.body.push(`AND ${regs[1]}, EDX`);
-//     //   this.proc.body.push(`OR ${regs[0]}, ${regs[1]}`);
-//     //   this.proc.body.push(`PUSH ${regs[0]}`);
-//     //   break;
-
 //   }
 // }
 
-function strOperation() {}
+function strOperation({ value }, body, { src, dst = "EAX" }) {
+  // Check if src is defined in data then it's a variable
+  // Else it's STR
+  if (src.type == "STR") {
+    let name = `LOCAL${this.localCount++}`;
+    this.code.data.push(`${name} db "${src.value}", 0`);
+    src = `ADDR ${name}`;
+  } else src = src.value || src;
+
+  // TODO: Set appropriate size for new STR
+  let name = `LOCAL${this.localCount++}`;
+  this.code.data.push(`${name} db 50 dup(0), 0`);
+
+  switch (value) {
+    case "+":
+      body.push(`invoke AddSTR, ${dst}, ${src}, ADDR ${name}`);
+      body.push(`LEA ${dst}, ${name}`);
+      break;
+  }
+}
 
 exports.binaryOperation = binaryOperation;
 exports.strOperation = strOperation;
