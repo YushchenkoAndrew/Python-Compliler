@@ -1,9 +1,11 @@
-def main(q, d):
+def main():
     test = "_Second STR"
-    test = "Hello world" + test + "Test2" + test + "TEST3"
-    b = 2 + 1
+    test = "Hello world" + "2" + test
+    a = 1
+    b = 2 + 1 + a
     c = b
     a = 1 << 2
-    return a
+    a = test or b + 2
+    return 2
 
 main()
