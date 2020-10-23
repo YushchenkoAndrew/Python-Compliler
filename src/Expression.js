@@ -16,6 +16,7 @@ function parseExpression({ params = {}, priority }) {
     case "Number":
       // TODO: Type transformation INT -> FLOAT  and  allowed operation that based on TYPE
       // TODO: To create a normal result for different types with Binary Operation '==', 'or', 'and'
+      // TODO: Save STR length
       let constant = this.parseConstExpression();
       this.prevType = this.prevType || (constant.kind ? { type: constant.type, kind: constant.kind } : { type: constant.type });
       if (constant.type != this.prevType.type) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
