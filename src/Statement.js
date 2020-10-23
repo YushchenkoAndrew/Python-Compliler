@@ -42,7 +42,7 @@ function parseReturn() {
   let { type } = this.tokens[this.line][this.index] || { type: "" };
   if (!this.isInclude(type, "Variable", "Number", "Char", "String", "Unary", "Parentheses"))
     return { type: "RET", Expression: { value: 0, type: "INT", kind: 10 }, defined: "INT" };
-  return { type: "RET", Expression: this.parseExpression({}), defined: this.prevType };
+  return { type: "RET", Expression: this.parseExpression({}), defined: this.type.curr };
 }
 
 function parseVariable() {
@@ -57,7 +57,7 @@ function parseVariable() {
 function parseVariableAssign() {
   let { value } = this.tokens[this.line][this.index - 1];
   this.stateChecker("type", this.tokens[this.line][++this.index], "Type error", "Variable", "Number", "Char", "String", "Unary", "Parentheses");
-  return { type: "VAR", name: `_${value}`, Expression: this.parseExpression({}), defined: this.prevType };
+  return { type: "VAR", name: `_${value}`, Expression: this.parseExpression({}), defined: this.type.curr };
 }
 
 function parseFuncCaller() {

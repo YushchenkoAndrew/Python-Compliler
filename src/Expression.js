@@ -14,12 +14,8 @@ function parseExpression({ params = {}, priority }) {
     case "String":
     case "Char":
     case "Number":
-      // TODO: Type transformation INT -> FLOAT  and  allowed operation that based on TYPE
-      // TODO: To create a normal result for different types with Binary Operation '==', 'or', 'and'
-      // TODO: Save STR length
       let constant = this.parseConstExpression();
-      this.prevType = this.prevType || (constant.kind ? { type: constant.type, kind: constant.kind } : { type: constant.type });
-      if (constant.type != this.prevType.type) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
+      this.type = defineType(this.type, { ...constant });
 
       // If this.ast is not define then call parseExpression, it's need for start
       // up the recursion
@@ -39,12 +35,12 @@ function parseExpression({ params = {}, priority }) {
         this.index += 2;
       } else varType = varType.defined;
 
-      this.prevType = this.prevType || varType;
-      if (varType.type != this.prevType.type) this.errorMessageHandler(`Wrong arithmetic type`, this.tokens[this.line][this.index - 1]);
+      this.type = defineType(this.type, { ...varType });
 
       if (!this.ast && priority != -1) return this.parseExpression({ params: { value: `_${value}`, type: type, defined: varType } });
       return { value: `_${value}`, type: type, defined: varType };
 
+    // TODO: CREATE UNARY Operation that based on priority table!!
     case "Unary":
       // Check if prev value is an another exp, if not then "-" is a Unary Operation
       //    else Binary Operation
@@ -62,7 +58,10 @@ function parseExpression({ params = {}, priority }) {
 
       this.ast = this.ast || { type: "Binary Operation", value: operator, left: params, right: undefined, priority: currPriority };
       let right = this.parseExpression({ priority: currPriority });
-      this.stateChecker("type", right, "Such arithmetic syntax don't allow", "INT", "STR", "FLOAT", "VAR", "Unary");
+      this.stateChecker("type", this.type.curr, "Such arithmetic syntax don't allow", ...this.allowedOperations[operator][this.type.prev.type]);
+
+      // TODO: To create a normal result for different types with Binary Operation '==', 'or', 'and'
+      // TODO: THink about type ANY. Should I use such type or defined some basic types...
 
       // Initialize a basic AST if the AST is not define
       if (!priority) {
@@ -105,19 +104,24 @@ function parseExpression({ params = {}, priority }) {
     //   }
 
     case "LINE_END":
-      return this.ast || params;
-
     default:
-      if (!params.type) this.errorMessageHandler(`Such arithmetic syntax don't allow`, this.tokens[this.line][this.index - 1]);
+      return this.ast || params;
+  }
 
-      function getLastBrach(key, priority, branch) {
-        return branch[key] && branch.priority >= priority ? getLastBrach(key, priority, branch[key]) || branch : undefined;
-      }
+  function getLastBrach(key, priority, branch) {
+    return branch[key] && branch.priority >= priority ? getLastBrach(key, priority, branch[key]) || branch : undefined;
+  }
 
-      function updateBranch(branch, data) {
-        data = JSON.parse(JSON.stringify(data));
-        for (let key in data) branch[key] = JSON.parse(JSON.stringify(data[key]));
-      }
+  function updateBranch(branch, data) {
+    data = JSON.parse(JSON.stringify(data));
+    for (let key in data) branch[key] = JSON.parse(JSON.stringify(data[key]));
+  }
+
+  function defineType({ prev, curr }, next) {
+    delete next.value;
+    if (!curr.type) curr = { ...next };
+    else if (curr.type == "STR") next.length += curr.length;
+    return { prev: { ...curr }, curr: curr.type == "FLOAT" && next.type == "INT" ? { ...curr } : { ...next } };
   }
 }
 
@@ -145,13 +149,8 @@ function parseConstExpression() {
     case "Number":
       return { value: value, type: "INT", kind: "10" };
 
-    case "Char":
-      value = value.charCodeAt(0);
-      if (isNaN(value)) break;
-      return { value: value, type: "CHAR" };
-
     case "String":
-      return { value: value, type: "STR" };
+      return { value: value, type: "STR", length: value.length };
   }
 
   this.errorMessageHandler(`Convert Type Error`, this.tokens[this.line][this.index - 1]);

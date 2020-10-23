@@ -18,6 +18,8 @@ class Parser {
       header: [], // Put created upper head variables in header
       body: [],
     };
+
+    this.allowedOperations = require("./AllowedOperations.json");
   }
 
   inputModule(mod) {
@@ -50,8 +52,9 @@ class Parser {
 
   initStateMachine(level = 0, forcedBlock = false) {
     let { type } = this.tokens[this.line][this.index] || { type: this.tokens[this.line + 1] ? "NEXT" : "EOF" };
-    this.prevType = undefined;
     this.ast = undefined;
+
+    this.type = { prev: {}, curr: {} };
 
     switch (type.split(/\ /)[0]) {
       case "Function":
