@@ -1,21 +1,21 @@
-var Code = require("./MasmTemplate").template;
-const { readFileSync, writeFileSync } = require("fs");
+var masmCommands = require("./MasmCommands");
+const { writeFileSync } = require("fs");
 
 class Generator {
   constructor(syntaxTree) {
     console.log("\x1b[34m", "\n~ Start Code Generator:", "\x1b[0m");
-    this.inputModule(require("./AsmOperation"));
+    this.inputModule(require("./GenerateExpression"));
 
     this.keys = ["Declaration", "Statement", "Expression"];
-    this.regs = { available: ["EDX", "ECX", "EBX"], inUse: [] };
+    this.regs = { available: ["EBX", "ECX", "EDX"], inUse: [] };
 
     if (!syntaxTree) return;
     this.syntaxTree = JSON.parse(JSON.stringify(syntaxTree));
-    this.code = { header: [], const: [], data: [], func: [], start: [] };
-    this.proc = { header: [], body: [] };
 
-    // this.CodeTemplate = readFileSync("./BasicInclude.txt", "ascii");
-    this.CodeTemplate = Code;
+    this.code = { header: [], const: [], data: [], func: [], start: [] };
+    this.func = { header: [], body: [] };
+
+    this.localCount = 0;
   }
 
   inputModule(mod) {
@@ -25,76 +25,71 @@ class Generator {
   start(fileName) {
     if (!this.syntaxTree) return;
 
-    this.code.data.push(`Caption db "${this.syntaxTree.type}", 0`);
-    this.code.data.push(`Output db 20 dup(?), 0`);
-
     this.parseBody(this.syntaxTree);
-    this.replaceMarks();
-    writeFileSync(fileName, this.CodeTemplate);
+    this.generateASM(fileName);
   }
 
-  replaceMarks() {
-    this.CodeTemplate = this.CodeTemplate.replace("$HEADER", this.code.header.join("\n") || "");
-    this.CodeTemplate = this.CodeTemplate.replace("$CONST", this.code.const.join("\n") || "");
-    this.CodeTemplate = this.CodeTemplate.replace("$DATA", this.code.data.join("\n") || "");
-    this.CodeTemplate = this.CodeTemplate.replace("$FUNC", this.code.func.join("\n") || "");
-    this.CodeTemplate = this.CodeTemplate.replace("$START", "\t" + this.code.start.join("\n\t"));
+  generateASM(name) {
+    writeFileSync(
+      name,
+      require("./MasmTemplate")
+        .template.replace("$HEADER", this.code.header.join("\n") || "")
+        .replace("$CONST", this.code.const.join("\n") || "")
+        .replace("$DATA", this.code.data.join("\n") || "")
+        .replace("$FUNC", this.code.func.join("\n") || "")
+        .replace("$START", "\t" + this.code.start.join("\n\t"))
+    );
   }
 
-  parseBody({ body }) {
+  parseBody({ body }, params = {}) {
     for (let i in body) {
-      for (let k of this.keys) if (body[i][k]) this.redirect(k, body[i][k]);
+      for (let k of this.keys) if (body[i][k]) this.redirect(k, body[i][k], params);
     }
   }
 
-  redirect(name, tree) {
+  redirect(name, tree, params = {}) {
+    let { type } = tree;
+
     switch (name) {
       case "Declaration": {
         console.log("\t=> Created: " + name);
+        // TODO: Maybe at some point of time create func in func declaration
+        // To do it Just check if this.func.header[0] ? if it contain something
+        // Then save it and create an empty this.func and after that just restore data
 
-        this.code.header.push(`_${tree.name} PROTO`);
-        this.proc.header.push(`_${tree.name} PROC`);
+        // Add input params if demands of
+        this.code.header.push(`${tree.name} PROTO\ ` + tree.params.map((arg) => ":DWORD").join(","));
+        this.func.header.push(`${tree.name} PROC\ ` + tree.params.map((arg) => `_${arg}:DWORD`).join(","));
 
-        // Add input params
-        let { length } = tree.params;
-        for (let i = 0; i < length; i++) {
-          let comma = i + 1 != length ? "," : "";
-          this.code.header.push(this.code.header.pop() + ` :DWORD${comma}`);
-          this.proc.header.push(this.proc.header.pop() + ` _${tree.params[i]}:DWORD${comma}`);
-        }
-        this.parseBody(tree);
-
-        this.code.func.push(this.proc.header.join("\n\t") + "\n\t" + this.proc.body.join("\n\t") + `\n_${tree.name} ENDP`);
-        this.proc = { header: [], body: [] };
-
+        this.parseBody(tree, { func: tree.name });
+        this.createPROC(tree.name);
         break;
       }
 
       case "Statement": {
         console.log("\t=> Created: " + name);
 
-        switch (tree.type) {
+        switch (type) {
           case "VAR":
-            // TODO:
-            // Initialize variable
-            if (!this.isInclude(this.proc.header, `\ _${tree.name}:`)) this.proc.header.push(`LOCAL _${tree.name}:DWORD`);
-            this.redirect("Expression", tree.Expression);
-            this.proc.body.push(`POP _${tree.name}`);
+            this.redirect("Expression", tree.Expression, { var: tree.name, defined: tree.defined, ...params });
 
+            // We're certain that we declare new variable by another variable
+            // There for we need to check if this is our first time or not
+            if (this.isInclude(this.func.header, "PROC") && !this.isInclude(this.func.header, `\ ${tree.name}:`)) {
+              this.func.header.push(`LOCAL ${tree.name}:DWORD`);
+            }
             break;
 
           case "RET":
-            // this.parseBody(tree);
-            this.redirect("Expression", tree.Expression);
-
-            this.proc.body.push(`POP EAX`);
-            this.proc.body.push("RET");
+            this.redirect("Expression", tree.Expression, { type: tree.type, defined: tree.defined, ...params });
             break;
 
+          // TODO:
           case "FUNC_CALL":
-            let body = this.proc.header[0] ? this.proc.body : this.code.start;
-            body.push(`invoke ${["_" + tree.name, ...tree.params].join(", ")}`);
-            this.setOutput(tree.defined, body);
+            // Check if func is called from another func or not
+            let body = this.func.header[0] ? this.func.body : this.code.start;
+            body.push(`invoke ${[tree.name, ...tree.params].join(", ")}`);
+            this.convertType(tree.defined, body);
             break;
         }
 
@@ -102,36 +97,46 @@ class Generator {
       }
 
       case "Expression": {
-        switch (tree.type) {
+        switch (type) {
           case "STR":
-          case "CHAR":
-          case "INT":
-            return this.constExpression(tree);
+            // Define STR as a GLOBAL Variable
+            let name = `LOCAL${this.localCount++}`;
+            this.code.data.push(`${name} db "${tree.value}", 0`);
+            this.func.body.push(`LEA EAX, ${name}`);
 
-          case "VAR":
-            let { value } = tree;
-            this.proc.body.push(`PUSH _${value}`);
+            // If variable is declared then put address of this string to this variable
+            // else save it in the EAX reg
+            if (params.type != "RET") this.func.body.push(`MOV ${params.var}, EAX`);
             break;
 
-          // TODO: Finish this in a future...
-          case "FUNC_CALL":
-            let body = this.proc.header[0] ? this.proc.body : this.code.start;
-            body.push(`invoke ${"_" + tree.value}`);
-            body.push(`PUSH EAX`);
-            this.setOutput(tree.defined, body);
+          // TODO: Work on FLOAT Type
+          case "FLOAT":
+          case "INT":
+            this.func.body.push(`MOV ${params.var ? params.var : "EAX"}, ${tree.value}`);
+            break;
+
+          case "VAR":
+            this.func.body.push(`MOV EAX, ${tree.value}`);
+            if (params.var) this.func.body.push(`MOV ${params.var}, EAX`);
             break;
 
           case "Binary Operation":
-            this.redirect(name, tree.left);
-            this.redirect(name, tree.right);
-            this.binaryOperation(tree);
-            break;
+            // Get the right commands for the specific type
+            this.commands = masmCommands[params.defined.type];
+            this.createCommand = this.commands.createCommand.bind(this);
+            this.assignValue = this.commands.assignValue.bind(this);
 
-          case "Unary Operation":
-            this.redirect(name, tree.exp);
-            this.unaryOperation(tree);
+            this.parseExpression(tree);
+            if (params.var) this.func.body.push(`MOV ${params.var}, EAX`);
             break;
         }
+
+        // TODO:
+        // case "Unary Operation":
+        //   this.redirect(name, tree.exp);
+        //   this.unaryOperation(tree);
+        //   break;
+        // }
 
         break;
       }
@@ -141,41 +146,33 @@ class Generator {
     }
   }
 
-  setOutput({ type, kind = 0 }, body) {
-    console.log("\t=> Created: Expression");
+  createPROC(name) {
+    this.code.func.push(this.func.header.join("\n\t") + "\n\t" + this.func.body.join("\n\t") + "\n\tRET" + `\n${name} ENDP`);
+    this.func = { header: [], body: [] };
+  }
 
+  convertType({ type, kind = 0 }, body) {
     switch (type) {
-      case "INT": {
-        body.push(`MOV VALUE, 0${kind}`);
-        body.push(`invoke NumToStr, EAX, ADDR Output`);
-        body.push("invoke MessageBoxA, 0, ADDR Output, ADDR Caption, 0");
-        break;
-      }
-
-      case "STR": {
-        body.push(`invoke MessageBoxA, 0, ADDR [EAX], ADDR Caption, 0`);
-        break;
-      }
-    }
-  }
-
-  constExpression(tree) {
-    switch (tree.type) {
       case "INT":
-        this.proc.body.push(`PUSH 0${tree.value}`);
+        body.push(`MOV VALUE, ${kind}`);
+        body.push(`invoke NumToStr, EAX, ADDR Output`);
         break;
 
-      // TODO: Think about changing creating string as a pointer but create it as array of char
-      case "STR":
-        let name = "TEMP" + parseInt(Math.random() * 100);
-        this.code.data.push(`${name} db "${tree.value}", 0`);
-        this.proc.body.push(`PUSH offset [${name}] `);
+      // TODO:
+      case "FLOAT":
         break;
     }
+    body.push("invoke MessageBoxA, 0, EAX, ADDR Caption, 0");
   }
 
-  isInclude(arr, value) {
-    for (let a of arr) if (a.includes(value)) return true;
+  isInclude(value, ...arr) {
+    if (Array.isArray(value)) return this.isIncludeArr(value, ...arr);
+    for (let i in arr) if (value.includes(arr)) return Number(i) + 1;
+    return false;
+  }
+
+  isIncludeArr(arr, value) {
+    for (let i in arr) if (arr[i].includes(value)) return Number(i) + 1;
     return false;
   }
 }
