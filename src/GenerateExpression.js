@@ -52,6 +52,7 @@ function parseExpression(tree) {
 
 function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
   src = src.value || src;
+  dst = dst.value || dst;
 
   switch (value) {
     case "%":
@@ -103,6 +104,7 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
       break;
     }
 
+    // TODO: Create this based on type ???
     case "and": {
       let reg = this.regs.available[0];
       body.push("");
@@ -161,7 +163,7 @@ function strOperation({ value }, body, { src, dst = "EAX" }) {
 
   // TODO: Set appropriate size for new STR
   let name = `LOCAL${this.localCount++}`;
-  this.code.data.push(`${name} db 50 dup(0), 0`);
+  this.code.data.push(`${name} db ${this.allocateFreeSpace} dup(0), 0`);
 
   switch (value) {
     case "+":

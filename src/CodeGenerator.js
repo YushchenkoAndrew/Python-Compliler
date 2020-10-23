@@ -16,6 +16,7 @@ class Generator {
     this.func = { header: [], body: [] };
 
     this.localCount = 0;
+    this.allocateFreeSpace = 0;
   }
 
   inputModule(mod) {
@@ -125,6 +126,7 @@ class Generator {
             this.commands = masmCommands[params.defined.type];
             this.createCommand = this.commands.createCommand.bind(this);
             this.assignValue = this.commands.assignValue.bind(this);
+            this.allocateFreeSpace = params.defined.length || 0; // This param needed for declaration an array in ASM
 
             this.parseExpression(tree);
             if (params.var) this.func.body.push(`MOV ${params.var}, EAX`);
@@ -167,7 +169,7 @@ class Generator {
 
   isInclude(value, ...arr) {
     if (Array.isArray(value)) return this.isIncludeArr(value, ...arr);
-    for (let i in arr) if (value.includes(arr)) return Number(i) + 1;
+    for (let i in arr) if (value.includes(arr[i])) return Number(i) + 1;
     return false;
   }
 
