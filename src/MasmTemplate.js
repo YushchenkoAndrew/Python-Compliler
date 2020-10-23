@@ -11,11 +11,18 @@ include \\masm32\\include\\user32.inc
 includelib \\masm32\\lib\\user32.lib
 
 NumToStr PROTO :DWORD,:DWORD
+AddSTR PROTO :DWORD,:DWORD,:DWORD
 $HEADER
+
 .const
 $CONST
+
 .data
 VALUE dd 0
+Caption db "Program", 0
+Output db 20 dup(?), 0
+
+; Created Variables
 $DATA
 
 .code
@@ -35,10 +42,42 @@ NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
 	MOV BYTE ptr[EBX + ECX], DL
 	CMP ECX, 0
 	JNZ @loop
+	LEA EAX, Output
 	RET
 NumToStr ENDP
 
+AddSTR PROC uses ESI STR1:DWORD, STR2:DWORD, dst:DWORD
+	; Save data in regs EAX, EDX, ECX to the stack
+	PUSH EAX
+	PUSH EDX
+	PUSH ECX
 
+	MOV EAX, STR1
+	MOV EDX, dst
+@L1:
+	MOV CL, BYTE PTR [EAX]
+	MOV BYTE PTR [EDX], CL
+	INC EDX
+	INC EAX
+	CMP BYTE PTR [EAX], 0
+	JNE @L1
+
+	MOV EAX, STR2
+@L2:
+	MOV CL, BYTE PTR [EAX]
+	MOV BYTE PTR [EDX], CL
+	INC EAX
+	INC EDX
+	CMP BYTE PTR [EAX], 0
+	JNE @L2
+
+	POP ECX
+	POP EDX
+	POP EAX
+	RET
+AddSTR ENDP
+
+; User Functions
 $FUNC
 
 start:

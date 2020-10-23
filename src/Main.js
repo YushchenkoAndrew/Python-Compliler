@@ -1,6 +1,6 @@
 const Lexing = module.require("./Lexing");
 const Parser = module.require("./Parser");
-const Generator = module.require("./TestCodeGenerator");
+const Generator = module.require("./CodeGenerator");
 
 function main() {
   // let lexing = new Lexing("2-26-NodeJS-IO-82-Yushchenko-Andrew.txt");
