@@ -51,8 +51,8 @@ function parseExpression(tree) {
 }
 
 function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
-  src = src.value || src;
-  dst = dst.value || dst;
+  src = src.value !== undefined ? src.value : src;
+  dst = dst.value !== undefined ? dst.value : dst;
 
   switch (value) {
     case "%":
@@ -90,6 +90,7 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
       break;
     }
 
+    // TODO: "==" change it!!
     case "==":
     case ">":
     case "<":
@@ -104,7 +105,6 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
       break;
     }
 
-    // TODO: Create this based on type ???
     case "and": {
       let reg = this.regs.available[0];
       body.push("");
@@ -137,6 +137,24 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
   }
 }
 
+function assignValue(body, { dst, src }) {
+  switch (src.type) {
+    // Check if src is defined in data then it's a variable
+    // Else it's STR
+    case "STR":
+      body.push(this.commands.createValue.call(this, { src: src, dst: dst }));
+      break;
+
+    // TODO: Work on float  (T _ T)
+    case "FLOAT":
+      break;
+
+    // INT, VAR
+    default:
+      body.push(`MOV ${dst}, ${src.value !== undefined ? src.value : src}`);
+  }
+}
+
 // function binaryOperation(body, { value }, { src = 0, dst = "EAX" }) {
 //   // let regs = this.regs.available.slice(-2);
 //   // this.proc.body.push(`POP ${regs[1]}`);
@@ -155,13 +173,13 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
 function strOperation({ value }, body, { src, dst = "EAX" }) {
   // Check if src is defined in data then it's a variable
   // Else it's STR
-  if (src.type == "STR") {
-    let name = `LOCAL${this.localCount++}`;
-    this.code.data.push(`${name} db "${src.value}", 0`);
-    src = `ADDR ${name}`;
-  } else src = src.value || src;
+  if (src.type == "STR") src = this.commands.createValue.call(this, { src, prefix: "ADDR" });
+  else src = src.value !== undefined ? src.value : src;
 
-  // TODO: Set appropriate size for new STR
+  // Check If allocateSpace not equal to Empty, but if so then finish
+  // Operation because it useless
+  if (!this.allocateFreeSpace) return;
+
   let name = `LOCAL${this.localCount++}`;
   this.code.data.push(`${name} db ${this.allocateFreeSpace} dup(0), 0`);
 
@@ -176,3 +194,4 @@ function strOperation({ value }, body, { src, dst = "EAX" }) {
 exports.binaryOperation = binaryOperation;
 exports.strOperation = strOperation;
 exports.parseExpression = parseExpression;
+exports.assignValue = assignValue;

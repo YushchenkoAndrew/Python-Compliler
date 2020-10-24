@@ -85,9 +85,8 @@ class Generator {
             this.redirect("Expression", tree.Expression, { type: tree.type, defined: tree.defined, ...params });
             break;
 
-          // TODO:
           case "FUNC_CALL":
-            // Check if func is called from another func or not
+            // This Checks if func is called from another func or not
             let body = this.func.header[0] ? this.func.body : this.code.start;
             body.push(`invoke ${[tree.name, ...tree.params].join(", ")}`);
             this.convertType(tree.defined, body);
@@ -101,9 +100,7 @@ class Generator {
         switch (type) {
           case "STR":
             // Define STR as a GLOBAL Variable
-            let name = `LOCAL${this.localCount++}`;
-            this.code.data.push(`${name} db "${tree.value}", 0`);
-            this.func.body.push(`LEA EAX, ${name}`);
+            this.func.body.push(masmCommands.STR.createValue.call(this, { src: tree, dst: "EAX" }));
 
             // If variable is declared then put address of this string to this variable
             // else save it in the EAX reg
@@ -125,7 +122,6 @@ class Generator {
             // Get the right commands for the specific type
             this.commands = masmCommands[params.defined.type];
             this.createCommand = this.commands.createCommand.bind(this);
-            this.assignValue = this.commands.assignValue.bind(this);
             this.allocateFreeSpace = params.defined.length || 0; // This param needed for declaration an array in ASM
 
             this.parseExpression(tree);

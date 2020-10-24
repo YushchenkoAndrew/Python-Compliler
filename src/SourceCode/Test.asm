@@ -25,9 +25,8 @@ Output db 20 dup(?), 0
 ; Created Variables
 LOCAL0 db "_Second STR", 0
 LOCAL1 db "Hello world", 0
-LOCAL2 db "2", 0
-LOCAL3 db 23 dup(0), 0
-LOCAL4 db 23 dup(0), 0
+LOCAL2 db 22 dup(0), 0
+LOCAL3 db 22 dup(0), 0
 
 .code
 NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
@@ -58,6 +57,9 @@ AddSTR PROC uses ESI STR1:DWORD, STR2:DWORD, dst:DWORD
 
 	MOV EAX, STR1
 	MOV EDX, dst
+	CMP EAX, 00H
+	JE @SL2
+
 @L1:
 	MOV CL, BYTE PTR [EAX]
 	MOV BYTE PTR [EDX], CL
@@ -66,7 +68,10 @@ AddSTR PROC uses ESI STR1:DWORD, STR2:DWORD, dst:DWORD
 	CMP BYTE PTR [EAX], 0
 	JNE @L1
 
+@SL2:
 	MOV EAX, STR2
+	CMP EAX, 00H
+	JE @END
 @L2:
 	MOV CL, BYTE PTR [EAX]
 	MOV BYTE PTR [EDX], CL
@@ -75,6 +80,7 @@ AddSTR PROC uses ESI STR1:DWORD, STR2:DWORD, dst:DWORD
 	CMP BYTE PTR [EAX], 0
 	JNE @L2
 
+@END:
 	POP ECX
 	POP EDX
 	POP EAX
@@ -84,30 +90,17 @@ AddSTR ENDP
 ; User Functions
 _main PROC 
 	LOCAL _test:DWORD
-	LOCAL _a:DWORD
-	LOCAL _b:DWORD
-	LOCAL _c:DWORD
 	LEA EAX, LOCAL0
 	MOV _test, EAX
 	LEA EAX, LOCAL1
-	invoke AddSTR, EAX, ADDR LOCAL2, ADDR LOCAL3
+	invoke AddSTR, EAX, 00H, ADDR LOCAL2
+	LEA EAX, LOCAL2
+	invoke AddSTR, EAX, _test, ADDR LOCAL3
 	LEA EAX, LOCAL3
-	invoke AddSTR, EAX, _test, ADDR LOCAL4
-	LEA EAX, LOCAL4
 	MOV _test, EAX
-	MOV _a, 1
-	MOV EAX, 2
-	ADD EAX, 1
-	ADD EAX, _a
-	MOV _b, EAX
-	MOV EAX, _b
-	MOV _c, EAX
+	MOV EAX, 00H
+	MOV _test, EAX
 	MOV EAX, 1
-	MOV ECX, 2
-	SAL EAX, CL
-	MOV _a, EAX
-	MOV EAX, _b
-	ADD EAX, 2
 	
 	; Logic OR
 	XOR EBX, EBX
@@ -119,15 +112,11 @@ _main PROC
 	AND EBX, _test
 	OR EAX, EBX
 	
-	MOV _a, EAX
-	MOV EAX, 2
 	RET
 _main ENDP
 
 start:
 	invoke _main
-	MOV VALUE, 10
-	invoke NumToStr, EAX, ADDR Output
 	invoke MessageBoxA, 0, EAX, ADDR Caption, 0
 	invoke ExitProcess, 0
 end start

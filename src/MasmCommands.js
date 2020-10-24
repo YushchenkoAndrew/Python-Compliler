@@ -2,6 +2,7 @@
 var exception = ["-", "/", "%", "<<", ">>", "==", ">=", "<=", ">", "<", "or", "and"];
 
 exports.INT = {
+  // Allowed operations Symbols and it synonym for Assembler
   "+": "ADD",
   "-": "SUB",
   "*": "IMUL",
@@ -23,15 +24,11 @@ exports.INT = {
     if (this.isInclude(value, ...exception)) return this.binaryOperation;
     return ({ value }, body, { src, dst = "EAX" }) => body.push(`${this.commands[value]} ${dst}, ${src.value || src}`);
   },
-
-  assignValue(body, { dst, src }) {
-    src = src.value || src;
-    body.push(`MOV ${dst}, ${src}`);
-  },
 };
 
 // TODO:
 exports.FLOAT = {
+  // Allowed operations Symbols and it synonym for Assembler
   "+": "FADD",
   "-": "FSUB",
   "*": "FMUL",
@@ -41,23 +38,23 @@ exports.FLOAT = {
   createCommand({ value }) {
     return ({ value }, body, { src, dst = "EAX" }) => body.push(`${this.commands[value]} ${dst}, ${src}`);
   },
-
-  assignValue() {},
 };
 
 exports.STR = {
   // This method should be called like a part of CodeGenerator Class
-  createCommand() {
+  createCommand({ value }) {
+    if (this.isInclude(value, "or", "and")) return this.binaryOperation;
     return this.strOperation;
   },
 
-  assignValue(body, { dst, src }) {
-    // Check if src is defined in data then it's a variable
-    // Else it's STR
-    if (src.type == "STR") {
-      let name = `LOCAL${this.localCount++}`;
-      this.code.data.push(`${name} db "${src.value}", 0`);
-      this.func.body.push(`LEA EAX, ${name}`);
-    } else body.push(`MOV ${dst}, ${src}`);
+  createValue({ src, prefix = "", dst = "" }) {
+    // Check if str is not empty but if so then return a zero
+    if (!src.length) return dst ? `MOV ${dst}, 00H` : "00H";
+
+    // This simply create a local variable is demand of
+    // And return the name of created variable
+    let name = `LOCAL${this.localCount++}`;
+    this.code.data.push(`${name} db "${src.value}", 0`);
+    return dst ? `LEA ${dst}, ${name}` : `${prefix} ${name}`;
   },
 };
