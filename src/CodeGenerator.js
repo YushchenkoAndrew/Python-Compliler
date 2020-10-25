@@ -1,5 +1,6 @@
 var masmCommands = require("./MasmCommands");
 const { writeFileSync } = require("fs");
+const { timeStamp } = require("console");
 
 class Generator {
   constructor(syntaxTree) {
@@ -17,6 +18,7 @@ class Generator {
 
     this.localCount = 0;
     this.allocateFreeSpace = 0;
+    this.forcedType = undefined;
   }
 
   inputModule(mod) {
@@ -82,6 +84,8 @@ class Generator {
             break;
 
           case "RET":
+            // Create a bool return (00H or 01H) if type is not equal to INT
+            this.forcedType = this.isInclude(tree.Expression.value, "==") && tree.type != "INT" ? { type: "INT", kind: 10 } : 0;
             this.redirect("Expression", tree.Expression, { type: tree.type, defined: tree.defined, ...params });
             break;
 
@@ -89,7 +93,9 @@ class Generator {
             // This Checks if func is called from another func or not
             let body = this.func.header[0] ? this.func.body : this.code.start;
             body.push(`invoke ${[tree.name, ...tree.params].join(", ")}`);
-            this.convertType(tree.defined, body);
+            this.convertType(this.forcedType || tree.defined, body);
+            // Reset force type
+            this.forcedType = 0;
             break;
         }
 

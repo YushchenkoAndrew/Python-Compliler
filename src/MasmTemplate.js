@@ -12,6 +12,7 @@ includelib \\masm32\\lib\\user32.lib
 
 NumToStr PROTO :DWORD,:DWORD
 AddSTR PROTO :DWORD,:DWORD,:DWORD
+CompareSTR PROTO :DWORD,:DWORD
 $HEADER
 
 .const
@@ -48,7 +49,6 @@ NumToStr ENDP
 
 AddSTR PROC uses ESI STR1:DWORD, STR2:DWORD, dst:DWORD
 	; Save data in regs EAX, EDX, ECX to the stack
-	PUSH EAX
 	PUSH EDX
 	PUSH ECX
 
@@ -78,11 +78,49 @@ AddSTR PROC uses ESI STR1:DWORD, STR2:DWORD, dst:DWORD
 	JNE @L2
 
 @END:
+	MOV EAX, dst
 	POP ECX
 	POP EDX
-	POP EAX
 	RET
 AddSTR ENDP
+
+CompareSTR PROC uses ESI STR1:DWORD, STR2:DWORD
+	; Save data in regs EAX, EDX, ECX to the stack
+	PUSH EBX
+	PUSH ECX
+
+	MOV EBX, STR2
+	XOR ECX, ECX
+
+	CMP STR1, EBX	; Check if both string is Empty
+	MOV EAX, 01H	; Set result as True
+	JE @END
+	MOV EAX, STR1
+	CMP EAX, 00H	; Check if STR1 is empty
+	JE @ENDF
+	CMP EBX, 00H	; Check if STR2 is empty
+	JE @ENDF
+
+@L1:
+	MOV CL, BYTE PTR [EAX]
+	CMP CL, BYTE PTR [EBX]
+	JNE @ENDF
+	INC EAX
+	INC EBX
+	CMP BYTE PTR [EAX], 00H
+	JNE @L1
+
+	; Check if STR2 is also finished
+	MOV EAX, 01H
+	CMP BYTE PTR [EBX], 00H
+	JE @END
+@ENDF:
+	MOV EAX, 00H
+@END:
+	POP ECX
+	POP EBX
+	RET
+CompareSTR ENDP
 
 ; User Functions
 $FUNC

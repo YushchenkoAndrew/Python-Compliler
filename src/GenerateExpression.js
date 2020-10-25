@@ -51,6 +51,7 @@ function parseExpression(tree) {
 }
 
 function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
+  let { type } = src;
   src = src.value !== undefined ? src.value : src;
   dst = dst.value !== undefined ? dst.value : dst;
 
@@ -90,7 +91,9 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
       break;
     }
 
-    // TODO: "==" change it!!
+    // TODO: Find a better solution because if this will be deferent types
+    // such as str it will check not a string exactly but the address to the string
+    // So I need create better solution to this for covering all sort of possibilities
     case "==":
     case ">":
     case "<":
@@ -176,17 +179,19 @@ function strOperation({ value }, body, { src, dst = "EAX" }) {
   if (src.type == "STR") src = this.commands.createValue.call(this, { src, prefix: "ADDR" });
   else src = src.value !== undefined ? src.value : src;
 
-  // Check If allocateSpace not equal to Empty, but if so then finish
-  // Operation because it useless
-  if (!this.allocateFreeSpace) return;
-
-  let name = `LOCAL${this.localCount++}`;
-  this.code.data.push(`${name} db ${this.allocateFreeSpace} dup(0), 0`);
-
   switch (value) {
     case "+":
+      // Check If allocateSpace not equal to Empty, but if so then finish
+      // Operation because it useless
+      if (!this.allocateFreeSpace) return;
+
+      let name = `LOCAL${this.localCount++}`;
+      this.code.data.push(`${name} db ${this.allocateFreeSpace} dup(0), 0`);
       body.push(`invoke AddSTR, ${dst}, ${src}, ADDR ${name}`);
-      body.push(`LEA ${dst}, ${name}`);
+      break;
+
+    case "==":
+      body.push(`invoke CompareSTR, ${dst}, ${src}`);
       break;
   }
 }
