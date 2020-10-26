@@ -30,7 +30,7 @@ function parseFunc() {
 
   this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
   this.stateChecker("type", this.tokens[this.line][this.index++], "Indented Block is missing", "Start Block");
-  return { name: `_${value}`, params: params };
+  return { name: `_${value}`, params: params, body: [], defined: { type: "INT", kind: 10 } };
 }
 
 function parseIf() {
@@ -49,10 +49,13 @@ function parseElse(level, body) {
   // Small parser for Else Statement and else if statement
   // In a switch I just get an array of elements without the last one
   switch (type.split(/\ /).slice(0, -1).join("-")) {
-    case "ELSE":
+    case "ELSE": {
       // Delete all spaces
       this.tokens[this.line].push(...this.tokens[this.line].splice(this.index++).filter((token) => token.type != "Space"));
       this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong ELSE Statement declaration", "Start Block");
+
+      // Save if body for using it as a header after that
+      let header = JSON.parse(JSON.stringify(this.currLevel.body));
 
       // Create a new (Empty body)
       this.currLevel.header.push(...body.slice(0, -1));
@@ -60,9 +63,11 @@ function parseElse(level, body) {
 
       level = this.initStateMachine(level + 1, true);
       body.slice(-1)[0].Statement.else = this.currLevel.body;
+      this.currLevel.body.push(...header);
       break;
+    }
 
-    case "ELSE-IF":
+    case "ELSE-IF": {
       // Change "ELSE IF" token to the ELSE-IF for calling the if parser
       // Because it should be a similar one
       this.tokens[this.line][this.index].type = "ELSE-IF Keyword";
@@ -70,6 +75,9 @@ function parseElse(level, body) {
       // Go down to the previous level, that needs because
       // "else if" statement doesn't create a "Depth Tree"
       this.currLevel.level--;
+
+      // Save if body for using it as a header after that
+      let header = JSON.parse(JSON.stringify(this.currLevel.body));
 
       // Create a new (Empty body)
       this.currLevel.header.push(...body.slice(0, -1));
@@ -80,7 +88,9 @@ function parseElse(level, body) {
 
       // Restore level
       this.currLevel.level++;
+      this.currLevel.body.push(...header);
       break;
+    }
   }
 
   return level;
@@ -129,9 +139,7 @@ function parseFuncCaller() {
   // But for now it would be a simple declaration
   // let params = [];
   let params = this.getParams("Variable", "Number", "Char", "String", "Unary", "Parentheses");
-
-  // TODO: To write some code that could handle a situation where the user don't declare any return value in the function
-  let type = this.getDefinedToken("Statement", "type", "RET", this.getDefinedToken("Declaration", "name", `_${value}`, this.currLevel)).defined;
+  let type = this.getDefinedToken("Declaration", "name", `_${value}`, this.currLevel).defined;
 
   this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
   return { type: "FUNC_CALL", name: `_${value}`, params: params, defined: type };

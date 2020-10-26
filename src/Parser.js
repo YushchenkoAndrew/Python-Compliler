@@ -82,6 +82,10 @@ class Parser {
         level = this.initStateMachine(level + 1, true);
         body.slice(-1)[0].Declaration.body = this.currLevel.body;
 
+        // Set the type of return value
+        let define = this.getDefinedToken("Statement", "type", "RET", this.currLevel, false);
+        if (define) body.slice(-1)[0].Declaration.defined = define.defined;
+
         this.currLevel.level--;
         this.currLevel.header = header;
         this.currLevel.body = body;
@@ -114,8 +118,12 @@ class Parser {
         body.slice(-1)[0].Statement.body = this.currLevel.body;
         if (checkLevel.call(this, level + 1, false)) level = this.parseElse(level, body);
 
+        // TODO:
+        // Save all Assignment Statement into a header, not the best solution but works for now
+        // When I put assignment Statement into a header that means that it was defined before
+        // the function which is not true, so I need to reconsider it in the future, or not
         this.currLevel.level--;
-        this.currLevel.header = header;
+        this.currLevel.header = [...header, ...JSON.parse(JSON.stringify([...this.currLevel.body, ...this.currLevel.header]))];
         this.currLevel.body = body;
 
         // Check if it was the else-if statement, if so then go back to
@@ -149,13 +157,11 @@ class Parser {
         console.log(`BLOCK: \t  LEVEL ${level}`);
         this.index++;
         return this.initStateMachine(level + 1, forcedBlock);
-      // return;
 
       case "NEXT":
         this.line++;
         this.index = 0;
         return this.initStateMachine(0, forcedBlock);
-      // return;
 
       case "EOF":
         return;
@@ -188,7 +194,7 @@ class Parser {
     return false;
   }
 
-  getDefinedToken(type, key, value, { body = [], header = [] }) {
+  getDefinedToken(type, key, value, { body = [], header = [] }, alert = true) {
     // Get all data that already defined
     let defined = [...body, ...header];
 
@@ -199,9 +205,9 @@ class Parser {
     let index = defined.map((obj) => obj[type] && obj[type][key]).lastIndexOf(value);
 
     // If the variables is not defined then throw an Error
-    if (index == -1) this.errorMessageHandler(`Variable ${value} is not defined`, this.tokens[this.line][this.index - 1]);
+    if (index == -1 && alert) this.errorMessageHandler(`Variable ${value} is not defined`, this.tokens[this.line][this.index - 1]);
 
-    return defined[index][type];
+    return index != -1 ? defined[index][type] : undefined;
   }
 
   getDefinedTokenArray(types, key, value, defined) {

@@ -1,6 +1,7 @@
 function parseExpression(tree) {
   let state = tree.left.type.includes("Operation") + tree.right.type.includes("Operation") * 2;
 
+  // TODO: Create a correct expression generator with a FUNC_CALL
   switch (state) {
     // Next left and right values a Constant
     case 0:

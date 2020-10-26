@@ -24,17 +24,7 @@ Caption db "Program", 0
 Output db 20 dup(?), 0
 
 ; Created Variables
-LOCAL0 db "a = ", 0
-LOCAL1 db "0", 0
-LOCAL2 db 5 dup(0), 0
-LOCAL3 db "1", 0
-LOCAL4 db 5 dup(0), 0
-LOCAL5 db "2", 0
-LOCAL6 db 5 dup(0), 0
-LOCAL7 db "3", 0
-LOCAL8 db 5 dup(0), 0
-LOCAL9 db "default", 0
-LOCAL10 db 11 dup(0), 0
+
 
 .code
 NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
@@ -134,84 +124,19 @@ CompareSTR ENDP
 
 ; User Functions
 _main PROC 
-	LOCAL _test:DWORD
 	LOCAL _a:DWORD
-	LEA EAX, LOCAL0
-	MOV _test, EAX
-	MOV _a, 0
-	; IF Statement 0
-	MOV EAX, _a
-	
-	; LOGIC "=="
-	CMP EAX, 0
-	SETE AL
-	AND EAX, 0FFH
-	
-	CMP EAX, 00H
-	JE @ELSE0
-	MOV EAX, _test
-	invoke AddSTR, EAX, ADDR LOCAL1, ADDR LOCAL2
-	MOV _test, EAX
-	JMP @ENDIF0
-	@ELSE0:
-	; IF Statement 1
-	MOV EAX, _a
-	
-	; LOGIC "=="
-	CMP EAX, 1
-	SETE AL
-	AND EAX, 0FFH
-	
-	CMP EAX, 00H
-	JE @ELSE1
-	MOV EAX, _test
-	invoke AddSTR, EAX, ADDR LOCAL3, ADDR LOCAL4
-	MOV _test, EAX
-	JMP @ENDIF1
-	@ELSE1:
-	; IF Statement 2
-	MOV EAX, _a
-	
-	; LOGIC "=="
-	CMP EAX, 2
-	SETE AL
-	AND EAX, 0FFH
-	
-	CMP EAX, 00H
-	JE @ELSE2
-	MOV EAX, _test
-	invoke AddSTR, EAX, ADDR LOCAL5, ADDR LOCAL6
-	MOV _test, EAX
-	JMP @ENDIF2
-	@ELSE2:
-	; IF Statement 3
-	MOV EAX, _a
-	
-	; LOGIC "=="
-	CMP EAX, 3
-	SETE AL
-	AND EAX, 0FFH
-	
-	CMP EAX, 00H
-	JE @ELSE3
-	MOV EAX, _test
-	invoke AddSTR, EAX, ADDR LOCAL7, ADDR LOCAL8
-	MOV _test, EAX
-	JMP @ENDIF3
-	@ELSE3:
-	MOV EAX, _test
-	invoke AddSTR, EAX, ADDR LOCAL9, ADDR LOCAL10
-	MOV _test, EAX
-	@ENDIF3:
-	@ENDIF2:
-	@ENDIF1:
-	@ENDIF0:
-	MOV EAX, _test
+	MOV EAX, 5
+	IMUL EAX, 2
+	ADD EAX, 3
+	ADD EAX, 1
+	MOV _a, EAX
 	RET
 _main ENDP
 
 start:
 	invoke _main
+	MOV VALUE, 10
+	invoke NumToStr, EAX, ADDR Output
 	invoke MessageBoxA, 0, EAX, ADDR Caption, 0
 	invoke ExitProcess, 0
 end start

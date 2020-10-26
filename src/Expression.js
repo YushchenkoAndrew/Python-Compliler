@@ -29,11 +29,8 @@ function parseExpression({ params = {}, priority }) {
       let varType = this.getDefinedToken(["Statement", "Declaration"], "name", `_${value}`, this.currLevel);
 
       // TODO: Create better solution for FUNC_CALL
-      if (varType.type == "FUNC") {
-        type = "FUNC_CALL";
-        varType = this.getDefinedToken("Statement", "type", "RET", varType).defined;
-        this.index += 2;
-      } else varType = varType.defined;
+      if (varType.type == "FUNC") this.index += 2;
+      varType = varType.defined;
 
       this.type = defineType(this.type, { ...varType });
 
@@ -102,6 +99,7 @@ function parseExpression({ params = {}, priority }) {
 
     case "LINE_END":
     default:
+      this.drawExpression(this.ast);
       return this.ast || params;
   }
 
@@ -153,5 +151,44 @@ function parseConstExpression() {
   this.errorMessageHandler(`Convert Type Error`, this.tokens[this.line][this.index - 1]);
 }
 
+// TODO: Work on it
+function drawExpression(brach, index, lines = []) {
+  // console.log(brach);
+  // process.stdout.write("\r" + " ".repeat(dist) + "Hello\n\r");
+  let { value, type } = brach;
+  switch (type) {
+    case "INT":
+      // process.stdout.write(value);
+      break;
+
+    default:
+      if (!index) {
+        let line = " ".repeat(100);
+        index = 50;
+        // line.splice(index - 1, 0, `[${value}]`);
+        line = line.substr(0, index) + `[${value}]` + line.substr(index);
+        lines.push(line);
+
+        for (let i in lines) console.log(lines[i]);
+      }
+
+    // if (dist < pos) pos = 0;
+    // let delta = dist - pos;
+    //   process.stdout.write(`${" ".repeat(delta)}[${value}]\n`);
+    //   process.stdout.write(`\r${" ".repeat(delta - 1 > 0 ? delta - 1 : dist)}/   \\\n`);
+
+    //   // Left side
+    //   let len = delta - 2 > 0 ? delta - 2 : dist - 1;
+    //   process.stdout.write(`\r${" ".repeat(len)}`);
+    //   this.drawExpression(brach.left, delta - 2, dist);
+
+    //   // Right side
+    //   process.stdout.write(" ".repeat(dist - len + 2 > 0 ? dist - len + 2 : 4));
+    //   this.drawExpression(brach.right, len + dist - delta + 5, dist + 3);
+    // // this.drawExpression()
+  }
+}
+
 exports.parseExpression = parseExpression;
 exports.parseConstExpression = parseConstExpression;
+exports.drawExpression = drawExpression;
