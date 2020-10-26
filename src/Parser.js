@@ -1,3 +1,5 @@
+var { changeToken } = module.require("./Lexing");
+
 class Parser {
   constructor(tokens) {
     console.log("\x1b[34m", "\n~ Start Parser:", "\x1b[0m");
@@ -57,7 +59,7 @@ class Parser {
     this.type = { prev: {}, curr: {} };
 
     switch (type.split(/\ /)[0]) {
-      case "Function":
+      case "Function": {
         console.log(`FUNCTION: LEVEL ${level}`, this.tokens[this.line][this.index]);
 
         if (!checkLevel.call(this, level, forcedBlock)) return;
@@ -74,27 +76,71 @@ class Parser {
         this.currLevel.header.push(...this.currLevel.body);
         this.currLevel.body = [];
 
-        // Function this.initStateMachine will always return the undefined state, so I decided to write in such way
-        //  because it's much compact solution, that means that the body value will be this.currLevel.body()
-        body.slice(-1)[0].Declaration.body = this.initStateMachine(level + 1, true) || this.currLevel.body;
+        // Get a next level, because of the recursion I could not save
+        // the moment where "jump" is happening so I just return the level
+        // (this "jump")
+        level = this.initStateMachine(level + 1, true);
+        body.slice(-1)[0].Declaration.body = this.currLevel.body;
 
         this.currLevel.level--;
         this.currLevel.header = header;
         this.currLevel.body = body;
         break;
+      }
+
+      // TODO: Take into account variables that defined into if statement
+      // Make them visible some how
+      case "ELSE-IF":
+      case "IF": {
+        console.log(`IF:       LEVEL ${level}`, this.tokens[this.line][this.index]);
+
+        if (!checkLevel.call(this, level, forcedBlock)) return level;
+        this.index++;
+        this.currLevel.level++;
+        this.currLevel.body.push({ Statement: this.parseIf() });
+
+        // Save previous data
+        let header = JSON.parse(JSON.stringify(this.currLevel.header));
+        let body = JSON.parse(JSON.stringify(this.currLevel.body));
+
+        // Put created upper head variables in header
+        this.currLevel.header.push(...body);
+        this.currLevel.body = [];
+
+        // Get a next level, because of the recursion I could not save
+        // the moment where "jump" is happening so I just return the level
+        // (this "jump")
+        level = this.initStateMachine(level + 1, true);
+        body.slice(-1)[0].Statement.body = this.currLevel.body;
+        if (checkLevel.call(this, level + 1, false)) level = this.parseElse(level, body);
+
+        this.currLevel.level--;
+        this.currLevel.header = header;
+        this.currLevel.body = body;
+
+        // Check if it was the else-if statement, if so then go back to
+        // the else-if parser
+        if (type.includes("ELSE-IF")) return level;
+        break;
+      }
+
+      case "ELSE":
+        console.log(`ELSE:     LEVEL ${level}`, this.tokens[this.line][this.index]);
+        checkLevel.call(this, level, forcedBlock);
+        return level;
 
       case "Pass":
       case "Return":
         console.log(`RETURN:   LEVEL ${level}`, this.tokens[this.line][this.index]);
 
-        if (!checkLevel.call(this, level, forcedBlock)) return;
+        if (!checkLevel.call(this, level, forcedBlock)) return level;
         this.index++;
         this.currLevel.body.push({ Statement: this.parseReturn() });
         break;
 
       case "Variable":
         console.log(`VARIABLE: LEVEL ${level}`, this.tokens[this.line][this.index]);
-        if (!checkLevel.call(this, level, forcedBlock)) return;
+        if (!checkLevel.call(this, level, forcedBlock)) return level;
         this.index++;
         this.currLevel.body.push({ Statement: this.parseVariable() });
         break;
@@ -102,14 +148,14 @@ class Parser {
       case "Block":
         console.log(`BLOCK: \t  LEVEL ${level}`);
         this.index++;
-        this.initStateMachine(level + 1, forcedBlock);
-        return;
+        return this.initStateMachine(level + 1, forcedBlock);
+      // return;
 
       case "NEXT":
         this.line++;
         this.index = 0;
-        this.initStateMachine(0, forcedBlock);
-        return;
+        return this.initStateMachine(0, forcedBlock);
+      // return;
 
       case "EOF":
         return;
@@ -118,7 +164,7 @@ class Parser {
         this.errorMessageHandler(`Wrong Syntax`, this.tokens[this.line][this.index]);
     }
 
-    this.initStateMachine(level);
+    return this.initStateMachine(level);
 
     //
     // Addition Functions

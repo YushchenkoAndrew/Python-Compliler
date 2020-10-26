@@ -17,6 +17,7 @@ class Generator {
     this.func = { header: [], body: [] };
 
     this.localCount = 0;
+    this.labelCount = 0;
     this.allocateFreeSpace = 0;
     this.forcedType = undefined;
   }
@@ -28,7 +29,7 @@ class Generator {
   start(fileName) {
     if (!this.syntaxTree) return;
 
-    this.parseBody(this.syntaxTree);
+    this.parseBody(this.syntaxTree.body);
     this.generateASM(fileName);
   }
 
@@ -44,7 +45,7 @@ class Generator {
     );
   }
 
-  parseBody({ body }, params = {}) {
+  parseBody(body, params = {}) {
     for (let i in body) {
       for (let k of this.keys) if (body[i][k]) this.redirect(k, body[i][k], params);
     }
@@ -64,7 +65,8 @@ class Generator {
         this.code.header.push(`${tree.name} PROTO\ ` + tree.params.map((arg) => ":DWORD").join(","));
         this.func.header.push(`${tree.name} PROC\ ` + tree.params.map((arg) => `_${arg}:DWORD`).join(","));
 
-        this.parseBody(tree, { func: tree.name });
+        this.labelCount = 0;
+        this.parseBody(tree.body, { func: tree.name });
         this.createPROC(tree.name);
         break;
       }
@@ -96,6 +98,14 @@ class Generator {
             this.convertType(this.forcedType || tree.defined, body);
             // Reset force type
             this.forcedType = 0;
+            break;
+
+          case "IF":
+            // this.func.body.push("");
+            this.func.body.push(`; IF Statement ${this.labelCount}`);
+            this.redirect("Expression", tree.Expression, { var: tree.name, defined: tree.defined, ...params });
+            this.func.body.push("CMP EAX, 00H");
+            this.createIfDistribution(tree, params, this.labelCount++);
             break;
         }
 
@@ -153,6 +163,24 @@ class Generator {
   createPROC(name) {
     this.code.func.push(this.func.header.join("\n\t") + "\n\t" + this.func.body.join("\n\t") + "\n\tRET" + `\n${name} ENDP`);
     this.func = { header: [], body: [] };
+  }
+
+  createIfDistribution(tree, params, label) {
+    this.func.body.push(`JE @ELSE${label}`);
+
+    // Parse then statements
+    this.parseBody(tree.body, params);
+    if (!tree.else) {
+      this.func.body.push(`\r@ELSE${label}:`);
+      return;
+    }
+
+    this.func.body.push(`JMP @ENDIF${label}`);
+    this.func.body.push(`\r@ELSE${label}:`);
+
+    // Parse Else Statements
+    this.parseBody(tree.else, params);
+    this.func.body.push(`\r@ENDIF${label}:`);
   }
 
   convertType({ type, kind = 0 }, body) {

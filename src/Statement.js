@@ -1,3 +1,5 @@
+const { changeToken } = require("./Lexing");
+
 function stateChecker(key, token, error, ...expect) {
   if (!token || !this.isInclude(token[key], ...expect)) this.errorMessageHandler(error, token || { line: this.line, char: 0 });
 }
@@ -15,6 +17,7 @@ function getParams(...allowed) {
   return params;
 }
 
+// TODO: Create a simple default return statement or similar to this
 function parseFunc() {
   // Delete all spaces
   this.tokens[this.line].push(...this.tokens[this.line].splice(this.index).filter((token) => token.type != "Space"));
@@ -28,6 +31,59 @@ function parseFunc() {
   this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
   this.stateChecker("type", this.tokens[this.line][this.index++], "Indented Block is missing", "Start Block");
   return { name: `_${value}`, params: params };
+}
+
+function parseIf() {
+  // Delete all spaces
+  this.tokens[this.line].push(...this.tokens[this.line].splice(this.index).filter((token) => token.type != "Space"));
+  this.stateChecker("type", this.tokens[this.line][this.index], "Wrong If Statement declaration", "Variable", "Number", "String", "Unary", "Parentheses");
+  let exp = this.parseExpression({});
+  this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong If Statement declaration", "Start Block");
+  return { type: "IF", Expression: exp, defined: this.type.curr };
+}
+
+// Continue of method Parse If but here we can handle the else and else-if statement
+function parseElse(level, body) {
+  let { type } = this.tokens[this.line][this.index];
+
+  // Small parser for Else Statement and else if statement
+  // In a switch I just get an array of elements without the last one
+  switch (type.split(/\ /).slice(0, -1).join("-")) {
+    case "ELSE":
+      // Delete all spaces
+      this.tokens[this.line].push(...this.tokens[this.line].splice(this.index++).filter((token) => token.type != "Space"));
+      this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong ELSE Statement declaration", "Start Block");
+
+      // Create a new (Empty body)
+      this.currLevel.header.push(...body.slice(0, -1));
+      this.currLevel.body = [];
+
+      level = this.initStateMachine(level + 1, true);
+      body.slice(-1)[0].Statement.else = this.currLevel.body;
+      break;
+
+    case "ELSE-IF":
+      // Change "ELSE IF" token to the ELSE-IF for calling the if parser
+      // Because it should be a similar one
+      this.tokens[this.line][this.index].type = "ELSE-IF Keyword";
+
+      // Go down to the previous level, that needs because
+      // "else if" statement doesn't create a "Depth Tree"
+      this.currLevel.level--;
+
+      // Create a new (Empty body)
+      this.currLevel.header.push(...body.slice(0, -1));
+      this.currLevel.body = [];
+
+      level = this.initStateMachine(level, true);
+      body.slice(-1)[0].Statement.else = this.currLevel.body;
+
+      // Restore level
+      this.currLevel.level++;
+      break;
+  }
+
+  return level;
 }
 
 function parseReturn() {
@@ -56,7 +112,12 @@ function parseVariable() {
 
 function parseVariableAssign() {
   let { value } = this.tokens[this.line][this.index - 1];
-  this.stateChecker("type", this.tokens[this.line][++this.index], "Type error", "Variable", "Number", "Char", "String", "Unary", "Parentheses");
+  let { type } = this.tokens[this.line][this.index++];
+
+  this.stateChecker("type", this.tokens[this.line][this.index], "Type error", "Variable", "Number", "String", "Unary", "Parentheses");
+
+  // Check if it's assign with an operation
+  if (this.isInclude(type, "Add", "Sub", "Mul", "Div")) changeToken(this.tokens[this.line], this.index - 1);
   return { type: "VAR", name: `_${value}`, Expression: this.parseExpression({}), defined: this.type.curr };
 }
 
@@ -81,5 +142,7 @@ exports.parseFuncCaller = parseFuncCaller;
 exports.parseReturn = parseReturn;
 exports.parseVariable = parseVariable;
 exports.parseVariableAssign = parseVariableAssign;
+exports.parseIf = parseIf;
+exports.parseElse = parseElse;
 exports.getParams = getParams;
 exports.stateChecker = stateChecker;

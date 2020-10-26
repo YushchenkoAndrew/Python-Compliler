@@ -152,4 +152,20 @@ class Lexing {
   }
 }
 
-module.exports = Lexing;
+function changeToken(tokens, index) {
+  let { value, line, char } = tokens[index];
+
+  switch (value) {
+    case "/=":
+    case "*=":
+    case "-=":
+    case "+=":
+      tokens[index].value = value[1];
+      tokens[index].type = lexemes[value[1]];
+      tokens.splice(index + 1, 0, tokens[index - 1], { value: value[0], type: lexemes[value[0]], line: line, char: char });
+      break;
+  }
+}
+
+module.exports.Lexing = Lexing;
+module.exports.changeToken = changeToken;

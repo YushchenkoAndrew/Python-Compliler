@@ -1,4 +1,4 @@
-const Lexing = module.require("./Lexing");
+const { Lexing } = module.require("./Lexing");
 const Parser = module.require("./Parser");
 const Generator = module.require("./CodeGenerator");
 

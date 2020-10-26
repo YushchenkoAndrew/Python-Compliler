@@ -50,6 +50,8 @@ function parseExpression(tree) {
   }
 }
 
+// TODO: To improve this function to receiving prev (dst) not like a simple str value
+// but as an Object for better future analyzing which proc should I use...
 function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
   let { type } = src;
   src = src.value !== undefined ? src.value : src;
@@ -94,6 +96,7 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
     // TODO: Find a better solution because if this will be deferent types
     // such as str it will check not a string exactly but the address to the string
     // So I need create better solution to this for covering all sort of possibilities
+    // TODO: This problem may solve the solution above, If some day I would decide to do it
     case "==":
     case ">":
     case "<":

@@ -60,9 +60,6 @@ function parseExpression({ params = {}, priority }) {
       let right = this.parseExpression({ priority: currPriority });
       this.stateChecker("type", this.type.curr, "Such arithmetic syntax don't allow", ...this.allowedOperations[operator][this.type.prev.type]);
 
-      // TODO: To create a normal result for different types with Binary Operation '==', 'or', 'and'
-      // TODO: THink about type ANY. Should I use such type or defined some basic types...
-
       // Initialize a basic AST if the AST is not define
       if (!priority) {
         this.ast.right = right;
