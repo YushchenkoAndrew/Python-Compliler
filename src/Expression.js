@@ -99,7 +99,7 @@ function parseExpression({ params = {}, priority }) {
 
     case "LINE_END":
     default:
-      this.drawExpression(this.ast);
+      drawExpression(this.ast || params);
       return this.ast || params;
   }
 
@@ -151,44 +151,45 @@ function parseConstExpression() {
   this.errorMessageHandler(`Convert Type Error`, this.tokens[this.line][this.index - 1]);
 }
 
-// TODO: Work on it
-function drawExpression(brach, index, lines = []) {
-  // console.log(brach);
-  // process.stdout.write("\r" + " ".repeat(dist) + "Hello\n\r");
+// Create simple implementation splice for String
+String.prototype.splice = function (index, rm, str) {
+  return this.substr(0, index) + str + this.substr(index + Math.abs(rm));
+};
+
+// Create a simple algorithm for drawing AST, it will improve
+// Expression debugging
+function drawExpression(brach, i, j, lines) {
   let { value, type } = brach;
-  switch (type) {
+  switch (i && type) {
+    case "FLOAT":
+    case "STR":
+    case "VAR":
     case "INT":
-      // process.stdout.write(value);
+      value += "";
+      lines[i] = lines[i].splice(j, value.length, value);
+      break;
+
+    // Initialize state run only when "i" equal to 0 || undefined
+    case undefined:
+      lines = [];
+      lines.push(`+${"=".repeat(22)} Exp AST ${"=".repeat(22)}+`);
+      for (let i = 0; i < 20; i++) lines.push(`|${" ".repeat(53)}|`);
+      lines.push(`+${"=".repeat(53)}+\n`);
+
+      drawExpression(brach, 2, 30, lines);
+      console.log();
+      for (let line of lines) console.log(" ".repeat(30) + line);
       break;
 
     default:
-      if (!index) {
-        let line = " ".repeat(100);
-        index = 50;
-        // line.splice(index - 1, 0, `[${value}]`);
-        line = line.substr(0, index) + `[${value}]` + line.substr(index);
-        lines.push(line);
+      lines[i] = lines[i].splice(j - 3, value.length + 2, `[${value}]`);
+      lines[++i] = lines[i].splice(j - 4, 5, "/   \\");
 
-        for (let i in lines) console.log(lines[i]);
-      }
-
-    // if (dist < pos) pos = 0;
-    // let delta = dist - pos;
-    //   process.stdout.write(`${" ".repeat(delta)}[${value}]\n`);
-    //   process.stdout.write(`\r${" ".repeat(delta - 1 > 0 ? delta - 1 : dist)}/   \\\n`);
-
-    //   // Left side
-    //   let len = delta - 2 > 0 ? delta - 2 : dist - 1;
-    //   process.stdout.write(`\r${" ".repeat(len)}`);
-    //   this.drawExpression(brach.left, delta - 2, dist);
-
-    //   // Right side
-    //   process.stdout.write(" ".repeat(dist - len + 2 > 0 ? dist - len + 2 : 4));
-    //   this.drawExpression(brach.right, len + dist - delta + 5, dist + 3);
-    // // this.drawExpression()
+      // Check the Left and Right side
+      drawExpression(brach.left, ++i, j - 5, lines);
+      drawExpression(brach.right, i, brach.right.type.includes("Operation") ? j + 4 : j + 1, lines);
   }
 }
 
 exports.parseExpression = parseExpression;
 exports.parseConstExpression = parseConstExpression;
-exports.drawExpression = drawExpression;
