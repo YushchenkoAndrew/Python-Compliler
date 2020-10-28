@@ -55,6 +55,7 @@ class Parser {
   initStateMachine(level = 0, forcedBlock = false) {
     let { type } = this.tokens[this.line][this.index] || { type: this.tokens[this.line + 1] ? "NEXT" : "EOF" };
     this.ast = undefined;
+    this.neg = "Unary";
 
     this.type = { prev: {}, curr: {} };
 

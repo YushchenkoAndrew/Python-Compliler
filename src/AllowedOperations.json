@@ -2,6 +2,7 @@
   "+": { "INT": ["INT", "FLOAT"], "FLOAT": ["INT", "FLOAT"], "STR": ["STR"] },
   "-": { "INT": ["INT", "FLOAT"], "FLOAT": ["INT", "FLOAT"], "STR": [] },
   "*": { "INT": ["INT", "FLOAT"], "FLOAT": ["INT", "FLOAT"], "STR": [] },
+  "**": { "INT": ["INT", "FLOAT"], "FLOAT": ["INT", "FLOAT"], "STR": [] },
   "/": { "INT": ["INT", "FLOAT"], "FLOAT": ["INT", "FLOAT"], "STR": [] },
   "%": { "INT": ["INT"], "FLOAT": [], "STR": [] },
   "&": { "INT": ["INT"], "FLOAT": [], "STR": [] },

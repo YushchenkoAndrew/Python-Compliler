@@ -5,7 +5,6 @@ var priorityTable = require("./PriorityTable.json");
  * @param {*} param0
  * @param params   --   Previous param
  * @param priority --   priority is important
- * @param sign     --   is NegSign out of parentheses
  */
 function parseExpression({ params = {}, priority }) {
   let { type } = this.tokens[this.line][this.index] || { type: "LINE_END" };
@@ -17,6 +16,10 @@ function parseExpression({ params = {}, priority }) {
       let constant = this.parseConstExpression();
       this.type = defineType(this.type, { ...constant });
 
+      // Change value of this.neg to unary because after a number can be only
+      // a binary operation
+      this.neg = "Binary";
+
       // If this.ast is not define then call parseExpression, it's need for start
       // up the recursion
       if (!this.ast && priority != -1) return this.parseExpression({ params: constant });
@@ -26,6 +29,9 @@ function parseExpression({ params = {}, priority }) {
       let { value } = this.tokens[this.line][this.index++];
       type = "VAR";
 
+      // Change value of this.neg to unary because after a number can be only
+      // a binary operation
+      this.neg = "Binary";
       let varType = this.getDefinedToken(["Statement", "Declaration"], "name", `_${value}`, this.currLevel);
 
       // TODO: Create better solution for FUNC_CALL
@@ -37,21 +43,32 @@ function parseExpression({ params = {}, priority }) {
       if (!this.ast && priority != -1) return this.parseExpression({ params: { value: `_${value}`, type: type, defined: varType } });
       return { value: `_${value}`, type: type, defined: varType };
 
-    // TODO: CREATE UNARY Operation that based on priority table!!
-    case "Unary":
-      // Check if prev value is an another exp, if not then "-" is a Unary Operation
-      //    else Binary Operation
-      // TODO: handle Negative Unary Sign and Negative Operation
+    case "Unary": {
+      let currPriority = priorityTable[type];
+      let operator = this.tokens[this.line][this.index++].value;
 
-      if (!this.ast)
-        return this.parseExpression({
-          params: { type: "Unary Operation", value: this.tokens[this.line][this.index++].value, exp: this.parseExpression({ priority: -1 }) },
-        });
-      return { type: "Unary Operation", value: this.tokens[this.line][this.index++].value, exp: this.parseExpression({ priority: priority }) };
+      // Check Operation type and if it a Neg but also it should be a binary
+      // operation then change tokens type and recall parseExpression function
+      if (this.neg == "Binary" && operator == "-") {
+        this.tokens[this.line][--this.index].type = "Neg Operator";
+        return this.parseExpression({ params: params, priority: priority });
+      }
+
+      // Get an expression with priority -1, that mean that after finding a
+      // constant value or variable return it immediately, this need when this.ast is undefined
+      let exp = this.parseExpression({ priority: -1 });
+
+      if (!priority) return this.parseExpression({ params: { type: "Unary Operation", value: operator, exp: exp, priority: currPriority } });
+      return { type: "Unary Operation", value: operator, exp: exp, priority: currPriority };
+    }
 
     case "Operator":
       let currPriority = priorityTable[type];
       let operator = this.tokens[this.line][this.index++].value;
+
+      // Change the neg value to "Unary" because after Binary operations could can be only
+      // Unary operation
+      this.neg = "Unary";
 
       this.ast = this.ast || { type: "Binary Operation", value: operator, left: params, right: undefined, priority: currPriority };
       let right = this.parseExpression({ priority: currPriority });
@@ -59,23 +76,32 @@ function parseExpression({ params = {}, priority }) {
 
       // Initialize a basic AST if the AST is not define
       if (!priority) {
-        this.ast.right = right;
+        let branch = getLastBranch(["left", "exp"], currPriority, params);
+
+        // If Unary operation have a lower priority than the Binary operation, then swap them
+        if (branch && branch.priority != currPriority) {
+          branch.exp = { type: "Binary Operation", value: operator, left: branch.exp, right: right, priority: currPriority };
+          this.ast = JSON.parse(JSON.stringify(params));
+        } else this.ast.right = right;
+
         return this.parseExpression({ priority: currPriority });
       }
 
-      let branch = getLastBrach("right", currPriority, this.ast);
+      let branch = getLastBranch(["right", "exp"], currPriority, this.ast);
+      let key = branch && branch.exp ? "exp" : "right";
 
       // 1 * 2 + 3
       if (priority - currPriority <= 0) {
         if (branch && priority != currPriority)
-          branch.right = { type: "Binary Operation", value: operator, left: branch.right, right: right, priority: currPriority };
+          branch[key] = { type: "Binary Operation", value: operator, left: branch[key], right: right, priority: currPriority };
         else {
+          // FIXME:
           branch = branch || this.ast;
           updateBranch(branch, { type: "Binary Operation", value: operator, left: branch, right: right, priority: currPriority });
         }
       }
       // 1 + 2 * 3
-      else branch.right = { type: "Binary Operation", value: operator, left: branch.right, right: right, priority: currPriority };
+      else branch[key] = { type: "Binary Operation", value: operator, left: branch[key], right: right, priority: currPriority };
 
       return this.parseExpression({ priority: currPriority });
 
@@ -103,12 +129,20 @@ function parseExpression({ params = {}, priority }) {
       return this.ast || params;
   }
 
-  function getLastBrach(key, priority, branch) {
-    return branch[key] && branch.priority >= priority ? getLastBrach(key, priority, branch[key]) || branch : undefined;
+  function getLastBranch(keys, priority, branch) {
+    for (let key of keys) if (branch[key] && branch.priority >= priority) return getLastBranch(keys, priority, branch[key]) || branch;
+    return undefined;
   }
 
   function updateBranch(branch, data) {
     data = JSON.parse(JSON.stringify(data));
+
+    if (branch.exp) {
+      delete branch.exp;
+      branch.right = {};
+      branch.left = {};
+    }
+
     for (let key in data) branch[key] = JSON.parse(JSON.stringify(data[key]));
   }
 
@@ -158,8 +192,8 @@ String.prototype.splice = function (index, rm, str) {
 
 // Create a simple algorithm for drawing AST, it will improve
 // Expression debugging
-function drawExpression(brach, i, j, lines) {
-  let { value, type } = brach;
+function drawExpression(branch, i, j, lines) {
+  let { value, type } = branch;
   switch (i && type) {
     case "FLOAT":
     case "STR":
@@ -169,6 +203,24 @@ function drawExpression(brach, i, j, lines) {
       lines[i] = lines[i].splice(j, value.length, value);
       break;
 
+    case "Binary Operation":
+      lines[i] = lines[i].splice(j - 3, value.length + 2, `[${value}]`);
+      lines[++i] = lines[i].splice(j - 4, 5, "/   \\");
+      lines[++i] = lines[i].splice(j - 5, 7, "/     \\");
+
+      // Check the Left and Right side
+      type = branch.left.type;
+      drawExpression(branch.left, i + (type.includes("Operation") ? 1 : 0), j - 5, lines);
+      if (branch.right.type.includes("Operation")) drawExpression(branch.right, ++i, j + 4, lines);
+      else drawExpression(branch.right, i, j + 1, lines);
+      break;
+
+    case "Unary Operation":
+      lines[i] = lines[i].splice(j - 3, value.length + 2, `[${value}]`);
+      lines[++i] = lines[i].splice(j - 2, 1, "|");
+      drawExpression(branch.exp, ++i, j - 2, lines);
+      break;
+
     // Initialize state run only when "i" equal to 0 || undefined
     case undefined:
       lines = [];
@@ -176,18 +228,10 @@ function drawExpression(brach, i, j, lines) {
       for (let i = 0; i < 20; i++) lines.push(`|${" ".repeat(53)}|`);
       lines.push(`+${"=".repeat(53)}+\n`);
 
-      drawExpression(brach, 2, 30, lines);
+      drawExpression(branch, 2, 30, lines);
       console.log();
       for (let line of lines) console.log(" ".repeat(30) + line);
       break;
-
-    default:
-      lines[i] = lines[i].splice(j - 3, value.length + 2, `[${value}]`);
-      lines[++i] = lines[i].splice(j - 4, 5, "/   \\");
-
-      // Check the Left and Right side
-      drawExpression(brach.left, ++i, j - 5, lines);
-      drawExpression(brach.right, i, brach.right.type.includes("Operation") ? j + 4 : j + 1, lines);
   }
 }
 

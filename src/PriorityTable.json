@@ -1,25 +1,30 @@
 {
   "Power Operator": 1,
-  "Mult Operator": 2,
-  "Div Operator": 2,
-  "Module Operator": 2,
 
+  "Bitwise Unary Operator": 2,
   "Neg Unary Operator": 3,
-  "Add Operator": 4,
 
-  " Operator Bitwise Right": 5,
-  " Operator Bitwise Left": 5,
+  "Mult Operator": 4,
+  "Div Operator": 4,
+  "Module Operator": 4,
 
-  "AND Operator Bitwise": 6,
-  "XOR Operator Bitwise": 7,
-  "OR Operator Bitwise": 8,
+  "Neg Operator": 5,
+  "Add Operator": 6,
 
-  " Operator Equal To": 9,
-  " Operator More Than": 9,
-  " Operator More Than or Equal": 9,
-  " Operator Less Than": 9,
-  " Operator Less Than or Equal": 9,
+  " Operator Bitwise Right": 7,
+  " Operator Bitwise Left": 7,
 
-  "AND Operator Keyword": 10,
-  "OR Operator Keyword": 11
+  "AND Operator Bitwise": 8,
+  "XOR Operator Bitwise": 9,
+  "OR Operator Bitwise": 10,
+
+  " Operator Equal To": 11,
+  " Operator More Than": 11,
+  " Operator More Than or Equal": 11,
+  " Operator Less Than": 11,
+  " Operator Less Than or Equal": 11,
+
+  "LogicNeg Unary Operator Keyword": 12,
+  "AND Operator Keyword": 13,
+  "OR Operator Keyword": 14
 }
