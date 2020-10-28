@@ -126,8 +126,10 @@ function parseVariableAssign() {
 
   this.stateChecker("type", this.tokens[this.line][this.index], "Type error", "Variable", "Number", "String", "Unary", "Parentheses");
 
+  console.log(type);
+
   // Check if it's assign with an operation
-  if (this.isInclude(type, "Add", "Sub", "Mul", "Div")) changeToken(this.tokens[this.line], this.index - 1);
+  if (this.isInclude(type, "Add", "Sub", "Mul", "Div", "Mod", "Or", "And", "Xor", "SL", "SR")) changeToken(this.tokens[this.line], this.index - 1);
   return { type: "VAR", name: `_${value}`, Expression: this.parseExpression({}), defined: this.type.curr };
 }
 

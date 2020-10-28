@@ -30,6 +30,12 @@
   "-=": "Assignment and Sub Operator",
   "*=": "Assignment and Mul Operator",
   "/=": "Assignment and Div Operator",
+  "%=": "Assignment and Mod Operator",
+  "&=": "Assignment and And Operator",
+  "^=": "Assignment and Xor Operator",
+  "|=": "Assignment and Or Operator",
+  ">>=": "Assignment and SR Operator",
+  "<<=": "Assignment and SL Operator",
 
   "**": "Power Operator",
   "+": "Add Operator",

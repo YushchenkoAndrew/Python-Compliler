@@ -35,7 +35,12 @@ class Lexing {
 
         switch (result.length) {
           // If there sever possible chooses then find the biggest one and save it
-          case 2:
+          case 0:
+            variable += this.lines[i][j];
+            j++;
+            break;
+
+          default:
             result = [result[this.maxValueIndex(result)]];
 
           case 1:
@@ -47,10 +52,6 @@ class Lexing {
 
             variable = "";
             break;
-
-          default:
-            variable += this.lines[i][j];
-            j++;
         }
       }
 
@@ -156,6 +157,10 @@ function changeToken(tokens, index) {
   let { value, line, char } = tokens[index];
 
   switch (value) {
+    case "^=":
+    case "&=":
+    case "|=":
+    case "%=":
     case "/=":
     case "*=":
     case "-=":
@@ -163,6 +168,13 @@ function changeToken(tokens, index) {
       tokens[index].value = value[1];
       tokens[index].type = lexemes[value[1]];
       tokens.splice(index + 1, 0, tokens[index - 1], { value: value[0], type: lexemes[value[0]], line: line, char: char });
+      break;
+
+    case "<<=":
+    case ">>=":
+      tokens[index].value = value[2];
+      tokens[index].type = lexemes[value[2]];
+      tokens.splice(index + 1, 0, tokens[index - 1], { value: value.substr(0, 2), type: lexemes[value.substr(0, 2)], line: line, char: char });
       break;
   }
 }
