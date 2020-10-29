@@ -16,5 +16,7 @@
   ">=": { "INT": ["INT", "FLOAT"], "FLOAT": ["INT", "FLOAT"], "STR": [] },
   "<=": { "INT": ["INT", "FLOAT"], "FLOAT": ["INT", "FLOAT"], "STR": [] },
   "and": { "INT": ["INT", "FLOAT", "STR"], "FLOAT": ["INT", "FLOAT", "STR"], "STR": ["INT", "FLOAT", "STR"] },
-  "or": { "INT": ["INT", "FLOAT", "STR"], "FLOAT": ["INT", "FLOAT", "STR"], "STR": ["INT", "FLOAT", "STR"] }
+  "or": { "INT": ["INT", "FLOAT", "STR"], "FLOAT": ["INT", "FLOAT", "STR"], "STR": ["INT", "FLOAT", "STR"] },
+  "not": { "INT": ["INT"], "FLOAT": ["FLOAT"], "STR": ["STR"] },
+  "~": { "INT": ["INT"], "FLOAT": [], "STR": [] }
 }

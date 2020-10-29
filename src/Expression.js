@@ -57,6 +57,7 @@ function parseExpression({ params = {}, priority }) {
       // Get an expression with priority -1, that mean that after finding a
       // constant value or variable return it immediately, this need when this.ast is undefined
       let exp = this.parseExpression({ priority: -1 });
+      this.stateChecker("type", this.type.curr, "Such Unary opinions is not allowed", ...this.allowedOperations[operator][this.type.prev.type]);
 
       if (!priority) return this.parseExpression({ params: { type: "Unary Operation", value: operator, exp: exp, priority: currPriority } });
       return { type: "Unary Operation", value: operator, exp: exp, priority: currPriority };
@@ -95,7 +96,6 @@ function parseExpression({ params = {}, priority }) {
         if (branch && priority != currPriority)
           branch[key] = { type: "Binary Operation", value: operator, left: branch[key], right: right, priority: currPriority };
         else {
-          // FIXME:
           branch = branch || this.ast;
           updateBranch(branch, { type: "Binary Operation", value: operator, left: branch, right: right, priority: currPriority });
         }
@@ -139,8 +139,8 @@ function parseExpression({ params = {}, priority }) {
 
     if (branch.exp) {
       delete branch.exp;
-      branch.right = {};
       branch.left = {};
+      branch.right = {};
     }
 
     for (let key in data) branch[key] = JSON.parse(JSON.stringify(data[key]));
