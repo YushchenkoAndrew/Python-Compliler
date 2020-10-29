@@ -35,11 +35,6 @@ class Lexing {
 
         switch (result.length) {
           // If there sever possible chooses then find the biggest one and save it
-          case 0:
-            variable += this.lines[i][j];
-            j++;
-            break;
-
           default:
             result = [result[this.maxValueIndex(result)]];
 
@@ -52,6 +47,10 @@ class Lexing {
 
             variable = "";
             break;
+
+          case 0:
+            variable += this.lines[i][j];
+            j++;
         }
       }
 
