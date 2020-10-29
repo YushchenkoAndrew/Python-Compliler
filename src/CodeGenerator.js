@@ -1,4 +1,3 @@
-var masmCommands = require("./MasmCommands");
 const { writeFileSync } = require("fs");
 const { timeStamp } = require("console");
 
@@ -20,6 +19,7 @@ class Generator {
     this.labelCount = 0;
     this.allocateFreeSpace = 0;
     this.forcedType = undefined;
+    this.masmCommands = require("./MasmCommands");
   }
 
   inputModule(mod) {
@@ -76,7 +76,7 @@ class Generator {
 
         switch (type) {
           case "VAR":
-            this.redirect("Expression", tree.Expression, { var: tree.name, defined: tree.defined, ...params });
+            this.redirect("Expression", tree.Expression, { value: tree.name, defined: tree.defined, ...params });
 
             // We're certain that we declare new variable by another variable
             // There for we need to check if this is our first time or not
@@ -87,7 +87,7 @@ class Generator {
 
           case "RET":
             // Create a bool return (00H or 01H) if type is not equal to INT
-            this.forcedType = this.isInclude(tree.Expression.value, "==") && tree.type != "INT" ? { type: "INT", kind: 10 } : 0;
+            this.forcedType = this.isInclude(tree.Expression.value, "==", "not") && tree.type != "INT" ? { type: "INT", kind: 10 } : 0;
             this.redirect("Expression", tree.Expression, { type: tree.type, defined: tree.defined, ...params });
             break;
 
@@ -103,7 +103,7 @@ class Generator {
           case "IF":
             // this.func.body.push("");
             this.func.body.push(`; IF Statement ${this.labelCount}`);
-            this.redirect("Expression", tree.Expression, { var: tree.name, defined: tree.defined, ...params });
+            this.redirect("Expression", tree.Expression, { value: tree.name, defined: tree.defined, ...params });
             this.func.body.push("CMP EAX, 00H");
             this.createIfDistribution(tree, params, this.labelCount++);
             break;
@@ -114,43 +114,21 @@ class Generator {
 
       case "Expression": {
         switch (type) {
-          case "STR":
-            // Define STR as a GLOBAL Variable
-            this.func.body.push(masmCommands.STR.createValue.call(this, { src: tree, dst: "EAX" }));
-
-            // If variable is declared then put address of this string to this variable
-            // else save it in the EAX reg
-            if (params.type != "RET") this.func.body.push(`MOV ${params.var}, EAX`);
-            break;
-
-          // TODO: Work on FLOAT Type
-          case "FLOAT":
-          case "INT":
-            this.func.body.push(`MOV ${params.var ? params.var : "EAX"}, ${tree.value}`);
-            break;
-
-          case "VAR":
-            this.func.body.push(`MOV EAX, ${tree.value}`);
-            if (params.var) this.func.body.push(`MOV ${params.var}, EAX`);
-            break;
-
           case "Binary Operation":
             // Get the right commands for the specific type
-            this.commands = masmCommands[params.defined.type];
+            this.commands = this.masmCommands[params.defined.type];
             this.createCommand = this.commands.createCommand.bind(this);
             this.allocateFreeSpace = params.defined.length || 0; // This param needed for declaration an array in ASM
 
             this.parseExpression(tree);
-            if (params.var) this.func.body.push(`MOV ${params.var}, EAX`);
+            if (params.value) this.func.body.push(`MOV ${params.value}, EAX`);
             break;
-        }
 
-        // TODO:
-        // case "Unary Operation":
-        //   this.redirect(name, tree.exp);
-        //   this.unaryOperation(tree);
-        //   break;
-        // }
+          default:
+            params.var = params.value;
+            params.value = "EAX";
+            this.assignValue(this.func.body, { src: tree, dst: params });
+        }
 
         break;
       }

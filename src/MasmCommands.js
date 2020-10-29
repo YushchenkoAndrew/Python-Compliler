@@ -19,8 +19,9 @@ exports.INT = {
   ">=": "SELGE",
   "<=": "SETLE",
 
+  // TODO: Think how to insert unary Operation Checker
   // This method should be called like a part of CodeGenerator Class
-  createCommand({ value }) {
+  createCommand({ value, right, left }) {
     if (this.isInclude(value, ...exception)) return this.binaryOperation;
     return ({ value }, body, { src, dst = "EAX" }) => body.push(`${this.commands[value]} ${dst}, ${src.value || src}`);
   },
