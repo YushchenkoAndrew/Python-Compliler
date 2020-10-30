@@ -105,6 +105,7 @@ function parseExpression({ params = {}, priority }) {
 
       return this.parseExpression({ priority: currPriority });
 
+    // TODO: Implement parentheses simulation on such operations as "*=" "/=" ...
     // TODO: To implement Parentheses
     // case "Parentheses":
     //   this.index++;
@@ -125,7 +126,7 @@ function parseExpression({ params = {}, priority }) {
 
     case "LINE_END":
     default:
-      drawExpression(this.ast || params);
+      if (this.ast) drawExpression(this.ast);
       return this.ast || params;
   }
 
@@ -204,7 +205,7 @@ function drawExpression(branch, i, j, lines) {
       break;
 
     case "Binary Operation":
-      lines[i] = lines[i].splice(j - 3, value.length + 2, `[${value}]`);
+      lines[i] = lines[i].splice(j - 3, value.length + 3, `[${value}]\ `);
       lines[++i] = lines[i].splice(j - 4, 5, "/   \\");
       lines[++i] = lines[i].splice(j - 5, 7, "/     \\");
 
@@ -216,7 +217,7 @@ function drawExpression(branch, i, j, lines) {
       break;
 
     case "Unary Operation":
-      lines[i] = lines[i].splice(j - 3, value.length + 2, `[${value}]`);
+      lines[i] = lines[i].splice(j - 3, value.length + 3, `[${value}]\ `);
       lines[++i] = lines[i].splice(j - 2, 1, "|");
       drawExpression(branch.exp, ++i, j - 2, lines);
       break;

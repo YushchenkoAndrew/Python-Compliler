@@ -63,7 +63,7 @@ function parseElse(level, body) {
 
       level = this.initStateMachine(level + 1, true);
       body.slice(-1)[0].Statement.else = this.currLevel.body;
-      this.currLevel.body.push(...header);
+      this.currLevel.header.push(...header);
       break;
     }
 
@@ -88,7 +88,7 @@ function parseElse(level, body) {
 
       // Restore level
       this.currLevel.level++;
-      this.currLevel.body.push(...header);
+      this.currLevel.header.push(...header);
       break;
     }
   }

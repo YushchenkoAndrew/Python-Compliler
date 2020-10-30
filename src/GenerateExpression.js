@@ -91,15 +91,15 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
       let reg = this.regs.available[0];
 
       // If yes, then save data in the stack
-      if (flag) body.push(`PUSH EDX`);
+      if (flag) body.push(`PUSH\ EDX`);
 
-      body.push(`XOR EDX, EDX`);
-      body.push(`MOV ${reg}, ${src}`);
-      body.push(`${this.commands[value]} ${reg}`);
-      if (value == "%") body.push(`MOV EAX, EDX`);
+      body.push(`XOR\ EDX,\ EDX`);
+      body.push(`MOV\ ${reg},\ ${src}`);
+      body.push(`${this.commands[value]}${reg}`);
+      if (value == "%") body.push(`MOV\ EAX,\ EDX`);
 
       // Get data from the stack
-      if (flag) body.push(`POP EDX`);
+      if (flag) body.push(`POP\ EDX`);
       break;
     }
 
@@ -109,13 +109,13 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
       let flag = this.regs.inUse.includes("ECX");
 
       // If yes, then save data in the stack
-      if (flag) body.push(`PUSH ECX`);
+      if (flag) body.push(`PUSH\ ECX`);
 
-      body.push(`MOV ECX, ${src}`);
-      body.push(`${this.commands[value]} ${dst}, CL`);
+      body.push(`MOV\ ECX,\ ${src}`);
+      body.push(`${this.commands[value]}${dst},\ CL`);
 
       // Get data from the stack
-      if (flag) body.push(`POP ECX`);
+      if (flag) body.push(`POP\ ECX`);
       break;
     }
 
@@ -129,10 +129,10 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
     case ">=":
     case "<=": {
       body.push("");
-      body.push(`; LOGIC "${value}"`);
-      body.push(`CMP ${dst}, ${src}`);
-      body.push(`${this.commands[value]} ${dst[1]}L`); // Set value only in low byte (example: "AL")
-      body.push(`AND ${dst}, 0FFH`); // Save only last byte (example: "AL")
+      body.push(`;\ LOGIC\ "${value}\"\ `);
+      body.push(`CMP\ ${dst},\ ${src}`);
+      body.push(`${this.commands[value]}${dst[1]}L`); // Set value only in low byte (example: "AL")
+      body.push(`AND\ ${dst},\ 0FFH`); // Save only last byte (example: "AL")
       body.push("");
       break;
     }
@@ -141,12 +141,12 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
       let reg = this.regs.available[0];
       body.push("");
       body.push("; Logic AND");
-      body.push(`XOR ${reg}, ${reg}`);
-      body.push(`CMP ${dst}, 00H`);
-      body.push(`SETE ${reg[1]}L`);
-      body.push(`DEC ${reg}`);
-      body.push(`MOV ${dst}, ${src}`);
-      body.push(`AND ${dst}, ${reg}`);
+      body.push(`XOR\ ${reg},\ ${reg}`);
+      body.push(`CMP\ ${dst},\ 00H`);
+      body.push(`SETE\ ${reg[1]}L`);
+      body.push(`DEC\ ${reg}`);
+      body.push(`MOV\ ${dst},\ ${src}`);
+      body.push(`AND\ ${dst},\ ${reg}`);
       body.push("");
       break;
     }
@@ -155,14 +155,14 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
       let reg = this.regs.available[0];
       body.push("");
       body.push("; Logic OR");
-      body.push(`XOR ${reg}, ${reg}`);
-      body.push(`CMP ${dst}, 00H`);
-      body.push(`SETE ${reg[1]}L`);
-      body.push(`DEC ${reg}`);
-      body.push(`AND ${dst}, ${reg}`);
-      body.push(`XOR ${reg}, 0FFFFFFFFH`);
-      body.push(`AND ${reg}, ${src}`);
-      body.push(`OR ${dst}, ${reg}`);
+      body.push(`XOR\ ${reg},\ ${reg}`);
+      body.push(`CMP\ ${dst},\ 00H`);
+      body.push(`SETE\ ${reg[1]}L`);
+      body.push(`DEC\ ${reg}`);
+      body.push(`AND\ ${dst},\ ${reg}`);
+      body.push(`XOR\ ${reg},\ 0FFFFFFFFH`);
+      body.push(`AND\ ${reg},\ ${src}`);
+      body.push(`OR\ ${dst},\ ${reg}`);
       body.push("");
       break;
     }
@@ -172,17 +172,17 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
 function unaryOperation({ value }, body, dst) {
   switch (value) {
     case "-":
-      body.push(`NEG ${dst}`);
+      body.push(`NEG\ ${dst}`);
       break;
 
     case "~":
-      body.push(`XOR ${dst}, 0FFFFFFFFH`);
+      body.push(`XOR\ ${dst},\ 0FFFFFFFFH`);
       break;
 
     case "not":
-      body.push(`CMP ${dst}, 00H`);
-      body.push(`SETE ${dst[1]}L`); // Set value only in low byte (example: "AL")
-      body.push(`AND ${dst}, 0FFH`); // Save only last byte (example: "AL")
+      body.push(`CMP\ ${dst},\ 00H`);
+      body.push(`SETE\ ${dst[1]}L`); // Set value only in low byte (example: "AL")
+      body.push(`AND\ ${dst},\ 0FFH`); // Save only last byte (example: "AL")
       break;
   }
 }
@@ -229,7 +229,11 @@ function assignValue(body, { dst, src }, params = {}) {
     case "Unary Operation":
       // Check if dst is a variable then in dst.value == reg_name
       // if dst is not an object that it's a reg_name
-      this.assignValue(body, { dst: dst.value || dst, src: src.exp }, JSON.parse(JSON.stringify(dst)));
+
+      // TODO: Find better solution to the bug "return not -b + 2 and 5" -> "(not (-b + 2)) and 5"
+      // In this example first runs and "Binary Operation" and not the "Unary Operation" (T o T)
+
+      this.assignValue(body, { dst: dst.value || dst, src: src.exp }, JSON.parse(JSON.stringify(dst.defined ? dst : { defined: { type: "INT", kind: 10 } })));
       this.unaryOperation(src, body, dst.value || dst);
       if (dst.var) body.push(`MOV ${dst.var}, EAX`);
       break;
@@ -238,7 +242,6 @@ function assignValue(body, { dst, src }, params = {}) {
     // Suddenly comes the binary operations, so I just redirect it
     // to func that handle that binary operations and constant assignment
     case "Binary Operation":
-      console.log(dst, src);
       params.value = undefined;
       this.redirect("Expression", src, params);
       break;
@@ -253,7 +256,7 @@ function assignValue(body, { dst, src }, params = {}) {
 function strOperation({ value }, body, { src, dst = "EAX" }) {
   // Check if src is defined in data then it's a variable
   // Else it's STR
-  if (src.type == "STR") src = this.commands.createValue.call(this, { src, prefix: "ADDR" });
+  if (src.type == "STR") src = this.commands.createValue.call(this, { src, prefix: "ADDR " });
   else src = src.value !== undefined ? src.value : src;
 
   switch (value) {
@@ -263,12 +266,12 @@ function strOperation({ value }, body, { src, dst = "EAX" }) {
       if (!this.allocateFreeSpace) return;
 
       let name = `LOCAL${this.localCount++}`;
-      this.code.data.push(`${name} db ${this.allocateFreeSpace} dup(0), 0`);
-      body.push(`invoke AddSTR, ${dst}, ${src}, ADDR ${name}`);
+      this.code.data.push(`${name}\ db\ ${this.allocateFreeSpace}\ dup(0),\ 0`);
+      body.push(`invoke\ AddSTR,\ ${dst},\ ${src},\ ADDR\ ${name}`);
       break;
 
     case "==":
-      body.push(`invoke CompareSTR, ${dst}, ${src}`);
+      body.push(`invoke\ CompareSTR,\ ${dst},\ ${src}`);
       break;
   }
 }
