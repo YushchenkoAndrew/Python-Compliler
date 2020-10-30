@@ -6,7 +6,6 @@ I created this repo for project's version control, and for saving my current pro
 
 - [ ] Type Handler
   - [x] INT
-  - [x] CHAR
   - [x] STRING
   - [ ] FLOAT
 - [x] Number Bases
@@ -14,7 +13,7 @@ I created this repo for project's version control, and for saving my current pro
   - [x] OCT
   - [x] DEC
   - [x] HEX
-- [ ] Binary Operations
+- [ ] Binary Operations (INT)
   - [x] Addition
   - [ ] Subtraction
   - [x] Multiplication
@@ -31,6 +30,21 @@ I created this repo for project's version control, and for saving my current pro
   - [x] Bitwise 'XOR'
   - [x] Bitwise 'SHIFT RIGHT'
   - [x] Bitwise 'SHIFT LEFT'
+- [ ] Binary Operation (FLOAT)
+  - [ ] Addition
+  - [ ] Subtraction
+  - [ ] Multiplication
+  - [ ] Division
+  - [ ] Remainder of a Division
+  - [ ] Logical 'OR'
+  - [ ] Logical 'AND'
+  - [ ] Logical 'XOR'
+  - [ ] Logical 'EQUAL'
+  - [ ] Logical 'LESS'
+  - [ ] Logical 'MORE'
+- [ ] Binary Operation (STR)
+  - [x] Addition
+  - [ ] Multiplication
 - [x] Unary Operations
   - [x] Negation
   - [x] Logical negation
@@ -40,6 +54,6 @@ I created this repo for project's version control, and for saving my current pro
   - [ ] C Code Generator
   - [ ] Assembler (ARM) Code Generator
 - [x] Variable assignment
-- [ ] If statement
+- [x] If statement
 - [ ] Function handler
 - [ ] Unit test
