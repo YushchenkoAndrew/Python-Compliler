@@ -7,7 +7,7 @@ I created this repo for project's version control, and for saving my current pro
 - [ ] Type Handler
   - [x] INT
   - [x] STRING
-  - [ ] FLOAT
+  - [x] FLOAT
 - [x] Number Bases
   - [x] BIN
   - [x] OCT
@@ -31,11 +31,10 @@ I created this repo for project's version control, and for saving my current pro
   - [x] Bitwise 'SHIFT RIGHT'
   - [x] Bitwise 'SHIFT LEFT'
 - [ ] Binary Operation (FLOAT)
-  - [ ] Addition
+  - [x] Addition
   - [ ] Subtraction
-  - [ ] Multiplication
-  - [ ] Division
-  - [ ] Remainder of a Division
+  - [x] Multiplication
+  - [x] Division
   - [ ] Logical 'OR'
   - [ ] Logical 'AND'
   - [ ] Logical 'XOR'
