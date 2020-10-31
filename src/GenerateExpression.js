@@ -1,4 +1,4 @@
-function parseExpression(tree) {
+function parseExpression(tree, params = {}) {
   let state = getState("type", "Binary Operation", tree, "left", "right");
   let body = this.func.body;
 
@@ -6,25 +6,25 @@ function parseExpression(tree) {
     // Next left and right values a Constant
     case 0:
       // Save first input const in reg EAX
-      this.assignValue(body, { src: tree.left, dst: "EAX" });
+      this.assignValue(body, { src: tree.left, dst: "EAX" }, params);
       analyzeParams.call(this, "src", tree, body, { src: tree.right });
       break;
 
     // Next Left value is Operation and the right is Constant
     case 1:
-      this.parseExpression(tree.left);
+      this.parseExpression(tree.left, params);
       analyzeParams.call(this, "src", tree, body, { src: tree.right });
       break;
 
     // Next right value is Operation and the left is Constant
     case 2:
-      this.parseExpression(tree.right);
+      this.parseExpression(tree.right, params);
       analyzeParams.call(this, "src", tree, body, { src: tree.left });
       break;
 
     // Both left and right are Operations
     case 3:
-      this.parseExpression(tree.left);
+      this.parseExpression(tree.left, params);
 
       // Get the last used reg
       let reg = this.regs.inUse.slice(-1)[0];
@@ -36,7 +36,7 @@ function parseExpression(tree) {
 
         // Store current progress in the reg
         this.assignValue(body, { src: "EAX", dst: reg });
-        this.parseExpression(tree.right);
+        this.parseExpression(tree.right, params);
         this.createCommand(tree)(tree, body, { src: reg, dst: "EAX" });
 
         this.regs.available.push(this.regs.inUse.pop());
@@ -45,7 +45,7 @@ function parseExpression(tree) {
 
       // Else If reg is defined and in used
       this.createCommand(tree)(tree, body, { src: "EAX", dst: reg });
-      this.redirect("Expression", tree.right);
+      this.redirect("Expression", tree.right, params);
 
       break;
   }
@@ -208,13 +208,26 @@ function assignValue(body, { dst, src }, params = {}) {
       if (dst.var) body.push(`MOV ${dst.var}, ${dst.value}`);
       break;
 
-    // TODO: Work on float  (T _ T)
-    case "FLOAT":
-      break;
-
     case "INT":
-      // Check if dst is a variable, if no then dst should be a reg_name
-      body.push(`MOV ${dst.var || dst}, ${src.value !== undefined ? src.value : src}`);
+      // Check if the value expected to be a FLOAT but it's an INT value
+      // by default, then just go to next step
+      if (!params.defined || params.defined.type != "FLOAT") {
+        // Check if dst is a variable, if no then dst should be a reg_name
+        body.push(`MOV ${dst.var || dst}, ${src.value !== undefined ? src.value : src}`);
+        break;
+      }
+
+    // TODO: Fix the bug with unary operation an FLOAT LOCAL declaration
+    // and maybe it's the same bug as a return FLOAT value bug ???
+    case "FLOAT":
+      // Initialize FLOAT as a GLOBAL variable in ASM
+      src = this.masmCommands.FLOAT.createValue.call(this, { src: src, dst: dst });
+
+      if (dst.var) {
+        body.push(`LEA ${dst.value},\ ${src}`);
+        body.push(`MOV ${dst.var},\ ${dst.value}`);
+      } else body.push(`FLD ${src}`);
+
       break;
 
     case "VAR":
@@ -249,7 +262,7 @@ function assignValue(body, { dst, src }, params = {}) {
     // If src.type == undefined that mean that src == reg_name, so in this
     // situation just simply mov src to dst
     default:
-      body.push(`MOV ${dst}, ${src}`);
+      this.commands.swap(body, { src: src, dst: dst });
   }
 }
 

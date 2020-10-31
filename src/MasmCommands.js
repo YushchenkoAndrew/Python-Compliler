@@ -25,20 +25,42 @@ exports.INT = {
     if (this.isInclude(value, ...exception)) return this.binaryOperation;
     return ({ value }, body, { src, dst = "EAX" }) => body.push(`${this.commands[value]}${dst},\ ${src.value || src}`);
   },
+
+  swap(body, { src, dst }) {
+    body.push(`MOV ${dst}, ${src}`);
+  },
 };
 
 // TODO:
 exports.FLOAT = {
   // Allowed operations Symbols and it synonym for Assembler
-  "+": "FADD",
-  "-": "FSUB",
-  "*": "FMUL",
-  "/": "FDIV",
+  "+": "FADD ",
+  "-": "FSUB ",
+  "*": "FMUL ",
+  "/": "FDIV ",
 
   // This method should be called like a part of CodeGenerator Class
   createCommand({ value }) {
-    return ({ value }, body, { src, dst = "EAX" }) => body.push(`${this.commands[value]}\ ${dst},\ ${src}`);
+    return ({ value }, body, { src }) => {
+      // Get the name of GLOBAL variable that contain src value, or return src if it's a reg
+      src = src.value ? this.masmCommands.FLOAT.createValue.call(this, { src: src }) : src;
+
+      // Check if src is a local variable or a reg_name, if src == reg_name
+      // that means that at the current moment it's perform a swap
+      if (!src.includes("LOCAL")) body.push(`${this.commands[value]}st(0), st(1)`);
+      else body.push(`${this.commands[value]}${src}`);
+    };
   },
+
+  createValue({ src, dst }) {
+    // This simply create a local variable is demand of
+    // And return the name of created variable
+    let name = `LOCAL${this.globalCount++}`;
+    this.code.data.push(`${name}\ dd\ ${src.value + (src.type == "INT" ? "." : "")}`);
+    return name;
+  },
+
+  swap() {},
 };
 
 exports.STR = {
@@ -54,8 +76,10 @@ exports.STR = {
 
     // This simply create a local variable is demand of
     // And return the name of created variable
-    let name = `LOCAL${this.localCount++}`;
+    let name = `LOCAL${this.globalCount++}`;
     this.code.data.push(`${name}\ db\ "${src.value}",\ 0`);
     return dst ? `LEA\ ${dst},\ ${name}` : `${prefix}${name}`;
   },
+
+  swap() {},
 };

@@ -1,17 +1,10 @@
 def main():
-    test = "a = "
-    a = 10
-    if a == 0:
-        test += "0"
-    elif a == 1:
-        test += "1"
-    elif a == 2:
-        test += "2"
-    elif a == 3:
-        test += "3"
-    else:
-        test += "undefined"
+    test = "Hello"
+    b = 1.5
+    a = 1 + 25 / 3.5 + 2.9
+    return a
 
-    return test
+    # Bug with this
+    # return 1.5 + 5.2
 
 main()

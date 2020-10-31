@@ -14,7 +14,7 @@ class Generator {
     this.code = { header: [], const: [], data: [], func: [], start: [] };
     this.func = { header: [], body: [] };
 
-    this.localCount = 0;
+    this.globalCount = 0;
     this.labelCount = 0;
     this.allocateFreeSpace = 0;
     this.forcedType = undefined;
@@ -55,7 +55,7 @@ class Generator {
 
     switch (name) {
       case "Declaration": {
-        console.log("\t=> Created: " + name);
+        console.log("\t=> Created: " + name, { type: tree.type });
         // TODO: Maybe at some point of time create func in func declaration
         // To do it Just check if this.func.header[0] ? if it contain something
         // Then save it and create an empty this.func and after that just restore data
@@ -71,7 +71,7 @@ class Generator {
       }
 
       case "Statement": {
-        console.log("\t=> Created: " + name);
+        console.log("\t=> Created: " + name, { type: tree.type });
 
         switch (type) {
           case "VAR":
@@ -84,6 +84,7 @@ class Generator {
             }
             break;
 
+          // TODO: Fix the bug with float and return value
           case "RET":
             // Create a bool return (00H or 01H) if type is not equal to INT
             this.forcedType = this.isInclude(tree.Expression.value, "==", "not") && tree.type != "INT" ? { type: "INT", kind: 10 } : 0;
@@ -119,8 +120,10 @@ class Generator {
             this.createCommand = this.commands.createCommand.bind(this);
             this.allocateFreeSpace = params.defined.length || 0; // This param needed for declaration an array in ASM
 
-            this.parseExpression(tree);
-            if (params.value) this.func.body.push(`MOV ${params.value}, EAX`);
+            this.parseExpression(tree, { func: params.func, defined: { ...params.defined } });
+
+            // TODO: Maybe think about better solution + fix bug with RET and FLOAT
+            if (params.value) this.func.body.push(params.defined.type == "FLOAT" ? `FST ${params.value}` : `MOV ${params.value}, EAX`);
             break;
 
           default:
