@@ -84,7 +84,6 @@ class Generator {
             }
             break;
 
-          // TODO: Fix the bug with float and return value
           case "RET":
             // Create a bool return (00H or 01H) if type is not equal to INT
             this.forcedType = this.isInclude(tree.Expression.value, "==", "not") && tree.type != "INT" ? { type: "INT", kind: 10 } : 0;
@@ -113,17 +112,24 @@ class Generator {
       }
 
       case "Expression": {
+        // Get the right commands for the specific type
+        this.commands = this.masmCommands[params.defined.type];
+        this.createCommand = this.commands.createCommand.bind(this);
+        this.allocateFreeSpace = params.defined.length || 0; // This param needed for declaration an array in ASM
+
         switch (type) {
           case "Binary Operation":
-            // Get the right commands for the specific type
-            this.commands = this.masmCommands[params.defined.type];
-            this.createCommand = this.commands.createCommand.bind(this);
-            this.allocateFreeSpace = params.defined.length || 0; // This param needed for declaration an array in ASM
-
             this.parseExpression(tree, { func: params.func, defined: { ...params.defined } });
-
-            // TODO: Maybe think about better solution + fix bug with RET and FLOAT
-            if (params.value) this.func.body.push(params.defined.type == "FLOAT" ? `FST ${params.value}` : `MOV ${params.value}, EAX`);
+            console.log(params.value, params);
+            if (params.value) this.func.body.push(this.commands.setValue({ dst: params.value, src: "EAX" }));
+            // Check if params have any type such as ("RET", "SAVE") and it a FLOAT type
+            //  if so then it save current calculated value in a new created var
+            // And copied it to a reg "EAX"
+            else if (params.type && params.defined.type == "FLOAT") {
+              let name = this.masmCommands.FLOAT.createValue.call(this, {});
+              this.func.body.push(`FST ${name}`);
+              this.func.body.push(`MOV EAX, ${name}`);
+            }
             break;
 
           default:

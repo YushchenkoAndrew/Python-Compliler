@@ -42,6 +42,7 @@ function parseExpression(tree, params = {}) {
         this.regs.available.push(this.regs.inUse.pop());
         break;
       }
+      console.log("########################");
 
       // Else If reg is defined and in used
       this.createCommand(tree)(tree, body, { src: "EAX", dst: reg });
@@ -172,7 +173,8 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
 function unaryOperation({ value }, body, dst) {
   switch (value) {
     case "-":
-      body.push(`NEG\ ${dst}`);
+      // Create neg depends on type
+      body.push(this.commands.neg(dst));
       break;
 
     case "~":
@@ -183,6 +185,10 @@ function unaryOperation({ value }, body, dst) {
       body.push(`CMP\ ${dst},\ 00H`);
       body.push(`SETE\ ${dst[1]}L`); // Set value only in low byte (example: "AL")
       body.push(`AND\ ${dst},\ 0FFH`); // Save only last byte (example: "AL")
+
+      // Change type and createCommand from "ANY" to INT
+      this.commands = this.masmCommands.INT;
+      this.createCommand = this.commands.createCommand.bind(this);
       break;
   }
 }
@@ -217,8 +223,8 @@ function assignValue(body, { dst, src }, params = {}) {
         break;
       }
 
-    // TODO: Fix the bug with unary operation an FLOAT LOCAL declaration
-    // and maybe it's the same bug as a return FLOAT value bug ???
+    // TODO: Think about transformation from INT to FLOAT if value contains in variable
+    // or reg
     case "FLOAT":
       // Initialize FLOAT as a GLOBAL variable in ASM
       src = this.masmCommands.FLOAT.createValue.call(this, { src: src, dst: dst });
@@ -245,10 +251,12 @@ function assignValue(body, { dst, src }, params = {}) {
 
       // TODO: Find better solution to the bug "return not -b + 2 and 5" -> "(not (-b + 2)) and 5"
       // In this example first runs and "Binary Operation" and not the "Unary Operation" (T o T)
+      params.defined = params.defined || dst.defined || { type: "INT", kind: 10 };
 
-      this.assignValue(body, { dst: dst.value || dst, src: src.exp }, JSON.parse(JSON.stringify(dst.defined ? dst : { defined: { type: "INT", kind: 10 } })));
+      this.assignValue(body, { dst: dst.value || dst, src: src.exp }, JSON.parse(JSON.stringify(params)));
       this.unaryOperation(src, body, dst.value || dst);
-      if (dst.var) body.push(`MOV ${dst.var}, EAX`);
+      if (dst.var) body.push(this.commands.setValue({ src: "EAX", dst: dst.var }));
+      // body.push(dst.defined.type == "FLOAT" ? `FST ${dst.var}` : `MOV ${dst.var}, EAX`);
       break;
 
     // This state only needs when after low Priority Unary Operation
@@ -256,7 +264,10 @@ function assignValue(body, { dst, src }, params = {}) {
     // to func that handle that binary operations and constant assignment
     case "Binary Operation":
       params.value = undefined;
-      this.redirect("Expression", src, params);
+
+      // Here I add new key "type" = "SAVE" that needs for temporal
+      // Saving calculated value in a variable
+      this.redirect("Expression", src, { ...params, type: "SAVE" });
       break;
 
     // If src.type == undefined that mean that src == reg_name, so in this

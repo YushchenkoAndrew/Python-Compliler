@@ -29,6 +29,12 @@ exports.INT = {
   swap(body, { src, dst }) {
     body.push(`MOV ${dst}, ${src}`);
   },
+
+  setValue({ dst, src }) {
+    return `MOV ${dst}, ${src}`;
+  },
+
+  neg: (dst) => `NEG\ ${dst}`,
 };
 
 // TODO:
@@ -39,6 +45,7 @@ exports.FLOAT = {
   "*": "FMUL ",
   "/": "FDIV ",
 
+  // TODO: Implement Logic Operations such as "OR", "AND", "==", ">", "<"...
   // This method should be called like a part of CodeGenerator Class
   createCommand({ value }) {
     return ({ value }, body, { src }) => {
@@ -52,15 +59,22 @@ exports.FLOAT = {
     };
   },
 
-  createValue({ src, dst }) {
+  createValue({ src = {} }) {
     // This simply create a local variable is demand of
     // And return the name of created variable
     let name = `LOCAL${this.globalCount++}`;
-    this.code.data.push(`${name}\ dd\ ${src.value + (src.type == "INT" ? "." : "")}`);
+    if (src.type) this.code.data.push(`${name}\ dd\ ${src.value + (src.type == "INT" ? "." : "")}`);
+    else this.code.data.push(`${name}\ dd ?`);
     return name;
   },
 
   swap() {},
+
+  setValue({ dst }) {
+    return `FST ${dst}`;
+  },
+
+  neg: () => "FCHS",
 };
 
 exports.STR = {
@@ -82,4 +96,10 @@ exports.STR = {
   },
 
   swap() {},
+
+  setValue({ dst, src }) {
+    return `MOV ${dst}, ${src}`;
+  },
+
+  unaryOperation() {},
 };
