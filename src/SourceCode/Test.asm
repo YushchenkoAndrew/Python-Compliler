@@ -27,8 +27,7 @@ OutFloat db 20 dup(?), 0
 
 ; Created Variables
 LOCAL0 dd 1.5
-LOCAL1 dd 5.
-LOCAL2 dd ?
+LOCAL1 dd ?
 
 .code
 NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
@@ -211,9 +210,8 @@ _main PROC
 	ADD EAX, 1
 	MOV _a, EAX
 	FLD LOCAL0
-	FADD LOCAL1
-	FST LOCAL2
-	MOV EAX, LOCAL2
+	FST LOCAL1
+	MOV EAX, LOCAL1
 	RET
 _main ENDP
 

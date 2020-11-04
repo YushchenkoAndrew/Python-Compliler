@@ -173,8 +173,8 @@ function parseConstExpression() {
       return { value: `0${value.substr(2)}H`, type: "INT", kind: 16 };
 
     case "Float":
-      if (parseInt(value) == value) return { value: parseInt(value), type: "INT", kind: "10" };
-      return { value: Number(value), type: "FLOAT" };
+      if (parseInt(value) == value) return { value: parseInt(value) + "", type: "INT", kind: "10" };
+      return { value: Number(value) + "", type: "FLOAT" };
 
     case "Number":
       return { value: value, type: "INT", kind: "10" };

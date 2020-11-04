@@ -136,6 +136,11 @@ class Generator {
             params.var = params.value;
             params.value = "EAX";
             this.assignValue(this.func.body, { src: tree, dst: params });
+            if (params.type && params.defined.type == "FLOAT") {
+              let name = this.masmCommands.FLOAT.createValue.call(this, {});
+              this.func.body.push(`FST ${name}`);
+              this.func.body.push(`MOV EAX, ${name}`);
+            }
         }
 
         break;
