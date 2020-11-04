@@ -11,6 +11,7 @@ include \masm32\include\user32.inc
 includelib \masm32\lib\user32.lib
 
 NumToStr PROTO :DWORD,:DWORD
+FloatToStr_ PROTO :DWORD,:DWORD
 AddSTR PROTO :DWORD,:DWORD,:DWORD
 CompareSTR PROTO :DWORD,:DWORD
 _main PROTO 
@@ -22,28 +23,21 @@ _main PROTO
 VALUE dd 0
 Caption db "Program", 0
 Output db 20 dup(?), 0
+OutFloat db 20 dup(?), 0
 
 ; Created Variables
-LOCAL0 db "Hello", 0
-LOCAL1 dd 10.
-LOCAL2 dd 1.5
-LOCAL3 dd ?
-LOCAL4 dd 25.
-LOCAL5 dd 6.5
-LOCAL6 dd 2.9
-LOCAL7 dd 2.5
-LOCAL8 dd 2.5
-LOCAL9 dd 2.
-LOCAL10 dd 1.
-LOCAL11 dd 1.5
-LOCAL12 dd ?
+LOCAL0 dd 1.5
+LOCAL1 dd 5.
+LOCAL2 dd ?
 
 .code
 NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
+	LOCAL index
+	MOV EAX, x
 	MOV EBX, TextBuff
 	MOV ECX, 0BH
+	MOV index, ECX
 @loop:
-	MOV EDX, 00H
 	XOR EDX, EDX
 	DIV VALUE
 	DEC ECX
@@ -53,11 +47,79 @@ NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
 	ADD DX, 7
 @store:
 	MOV BYTE ptr[EBX + ECX], DL
+	CMP EAX, 0
+	JE @next
+	MOV index, ECX
+@next:
 	CMP ECX, 0
 	JNZ @loop
-	LEA EAX, Output
+	MOV EAX, TextBuff
+	MOV ECX, index	; Save Mantis Position
+	DEC ECX
 	RET
 NumToStr ENDP
+
+FloatToStr_ PROC uses ESI x:DWORD, TextBuff:DWORD
+	LOCAL index:DWORD
+	MOV EAX, x
+	; Get e Value
+	MOV ECX, EAX
+	SHR ECX, 23
+	AND ECX, 0FFH
+	; Check on NaN
+	JZ @end
+	CMP ECX, 0FFH
+	JE @end
+	AND EAX, 0007FFFFFH
+	OR EAX, 000800000H
+	; Calculate E = e - 127
+	SUB ECX, 127
+	MOV index, ECX
+	JS @end					; FIXME: Bug with values such as: 0.045
+	; Check if E < 23
+	CMP ECX, 23
+	JG @end					; FIXME: Create computation if E > 23
+	MOV EDX, ECX
+	MOV ECX, 23
+	SUB ECX, EDX
+	SHR EAX, CL	; Get INT Value from F
+	MOV VALUE, 0AH
+	invoke NumToStr, EAX, TextBuff
+	MOV EBX, x
+	AND EBX, 080000000h ; Check Sign
+	JZ @loop
+	DEC ECX
+	MOV BYTE PTR[EAX + ECX], '-'
+	; Create an empty space before INT value
+@loop:
+	MOV BYTE PTR [EAX + ECX - 1], ' '
+	DEC ECX
+	JNZ @loop
+	MOV EDX, EAX
+	MOV EBX, 0CH
+	MOV BYTE PTR [EDX + 0BH], '.'
+
+	; Save only FLOAT Value
+	MOV EAX, x
+	MOV ECX, index
+	ADD ECX, 05H
+	SHL EAX, CL
+	AND EAX, 00FFFFFFFH
+	; Printing FLOAT Number
+@loop2:
+	IMUL EAX, 0AH
+	MOV ECX, EAX
+	AND EAX, 00FFFFFFFH
+	SHR ECX, 28
+	ADD ECX, 48
+	MOV BYTE PTR [EDX + EBX], CL
+	INC EBX
+	CMP EBX, 20
+	JNE @loop2
+@end:
+	MOV EAX, TextBuff
+	RET
+FloatToStr_ ENDP
 
 AddSTR PROC uses ESI STR1:DWORD, STR2:DWORD, dst:DWORD
 	; Save data in regs EAX, EDX, ECX to the stack
@@ -136,50 +198,28 @@ CompareSTR ENDP
 
 ; User Functions
 _main PROC 
-	LOCAL _test:DWORD
 	LOCAL _a:DWORD
-	LOCAL _b:DWORD
-	LEA EAX, LOCAL0
-	MOV _test, EAX
-	MOV EAX, 1
-	NEG EAX
+	MOV EAX, 2
+	IMUL EAX, 3
+	MOV EDX, EAX
+	MOV EAX, 4
+	IMUL EAX, 5
+	ADD EDX, EAX
+	MOV EAX, 6
+	IMUL EAX, 7
+	ADD EAX, EDX
+	ADD EAX, 1
 	MOV _a, EAX
-	FLD LOCAL1
-	FLD LOCAL2
-	FCHS
-	FCHS
-	FCHS
-	FCHS
-	FCHS
-	FADD st(0), st(1)
-	FST LOCAL3
-	MOV EAX, LOCAL3
-	CMP EAX, 00H
-	SETE AL
-	AND EAX, 0FFH
-	CMP EAX, 00H
-	SETE AL
-	AND EAX, 0FFH
-	MOV _b, EAX
-	FLD LOCAL4
-	FDIV LOCAL5
-	FLD LOCAL6
-	FMUL LOCAL7
-	FADD st(0), st(1)
-	FLD LOCAL8
-	FMUL LOCAL9
-	FADD st(0), st(1)
-	FADD LOCAL10
-	FST _a
-	MOV EAX, _a
-	undefinedLOCAL11
-	FST LOCAL12
-	MOV EAX, LOCAL12
+	FLD LOCAL0
+	FADD LOCAL1
+	FST LOCAL2
+	MOV EAX, LOCAL2
 	RET
 _main ENDP
 
 start:
 	invoke _main
+	invoke FloatToStr_, EAX, ADDR OutFloat
 	invoke MessageBoxA, 0, EAX, ADDR Caption, 0
 	invoke ExitProcess, 0
 end start

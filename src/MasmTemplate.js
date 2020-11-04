@@ -11,6 +11,7 @@ include \\masm32\\include\\user32.inc
 includelib \\masm32\\lib\\user32.lib
 
 NumToStr PROTO :DWORD,:DWORD
+FloatToStr_ PROTO :DWORD,:DWORD
 AddSTR PROTO :DWORD,:DWORD,:DWORD
 CompareSTR PROTO :DWORD,:DWORD
 $HEADER
@@ -22,16 +23,19 @@ $CONST
 VALUE dd 0
 Caption db "Program", 0
 Output db 20 dup(?), 0
+OutFloat db 20 dup(?), 0
 
 ; Created Variables
 $DATA
 
 .code
 NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
+	LOCAL index
+	MOV EAX, x
 	MOV EBX, TextBuff
 	MOV ECX, 0BH
+	MOV index, ECX
 @loop:
-	MOV EDX, 00H
 	XOR EDX, EDX
 	DIV VALUE
 	DEC ECX
@@ -41,11 +45,79 @@ NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
 	ADD DX, 7
 @store:
 	MOV BYTE ptr[EBX + ECX], DL
+	CMP EAX, 0
+	JE @next
+	MOV index, ECX
+@next:
 	CMP ECX, 0
 	JNZ @loop
-	LEA EAX, Output
+	MOV EAX, TextBuff
+	MOV ECX, index	; Save Mantis Position
+	DEC ECX
 	RET
 NumToStr ENDP
+
+FloatToStr_ PROC uses ESI x:DWORD, TextBuff:DWORD
+	LOCAL index:DWORD
+	MOV EAX, x
+	; Get e Value
+	MOV ECX, EAX
+	SHR ECX, 23
+	AND ECX, 0FFH
+	; Check on NaN
+	JZ @end
+	CMP ECX, 0FFH
+	JE @end
+	AND EAX, 0007FFFFFH
+	OR EAX, 000800000H
+	; Calculate E = e - 127
+	SUB ECX, 127
+	MOV index, ECX
+	JS @end					; FIXME: Bug with values such as: 0.045
+	; Check if E < 23
+	CMP ECX, 23
+	JG @end					; FIXME: Create computation if E > 23
+	MOV EDX, ECX
+	MOV ECX, 23
+	SUB ECX, EDX
+	SHR EAX, CL	; Get INT Value from F
+	MOV VALUE, 0AH
+	invoke NumToStr, EAX, TextBuff
+	MOV EBX, x
+	AND EBX, 080000000h ; Check Sign
+	JZ @loop
+	DEC ECX
+	MOV BYTE PTR[EAX + ECX], '-'
+	; Create an empty space before INT value
+@loop:
+	MOV BYTE PTR [EAX + ECX - 1], ' '
+	DEC ECX
+	JNZ @loop
+	MOV EDX, EAX
+	MOV EBX, 0CH
+	MOV BYTE PTR [EDX + 0BH], '.'
+
+	; Save only FLOAT Value
+	MOV EAX, x
+	MOV ECX, index
+	ADD ECX, 05H
+	SHL EAX, CL
+	AND EAX, 00FFFFFFFH
+	; Printing FLOAT Number
+@loop2:
+	IMUL EAX, 0AH
+	MOV ECX, EAX
+	AND EAX, 00FFFFFFFH
+	SHR ECX, 28
+	ADD ECX, 48
+	MOV BYTE PTR [EDX + EBX], CL
+	INC EBX
+	CMP EBX, 20
+	JNE @loop2
+@end:
+	MOV EAX, TextBuff
+	RET
+FloatToStr_ ENDP
 
 AddSTR PROC uses ESI STR1:DWORD, STR2:DWORD, dst:DWORD
 	; Save data in regs EAX, EDX, ECX to the stack

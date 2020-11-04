@@ -176,8 +176,8 @@ class Generator {
         body.push(`invoke NumToStr, EAX, ADDR Output`);
         break;
 
-      // TODO:
       case "FLOAT":
+        body.push(`invoke FloatToStr_, EAX, ADDR OutFloat`);
         break;
     }
     body.push("invoke MessageBoxA, 0, EAX, ADDR Caption, 0");
