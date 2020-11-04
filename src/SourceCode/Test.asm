@@ -27,7 +27,9 @@ OutFloat db 20 dup(?), 0
 
 ; Created Variables
 LOCAL0 dd 1.5
-LOCAL1 dd ?
+LOCAL1 dd 2.
+LOCAL2 dd 3.
+LOCAL3 dd 1.6
 
 .code
 NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
@@ -198,20 +200,32 @@ CompareSTR ENDP
 ; User Functions
 _main PROC 
 	LOCAL _a:DWORD
-	MOV EAX, 2
-	IMUL EAX, 3
-	MOV EDX, EAX
-	MOV EAX, 4
-	IMUL EAX, 5
-	ADD EDX, EAX
-	MOV EAX, 6
-	IMUL EAX, 7
-	ADD EAX, EDX
-	ADD EAX, 1
-	MOV _a, EAX
-	FLD LOCAL0
-	FST LOCAL1
-	MOV EAX, LOCAL1
+	LOCAL _b:DWORD
+	MOV _a, 1
+	
+	; Transform INT -> FLOAT
+	FILD _a
+	
+	FADD LOCAL0
+	FST _a
+	MOV EAX, _a
+	MOV _b, EAX
+	MOV _a, 2
+	
+	; Transform INT -> FLOAT
+	FILD _a
+	
+	FMUL LOCAL1
+	FLD LOCAL2
+	
+	; Transform INT -> FLOAT
+	FILD _a
+	
+	FMUL st(0), st(2)
+	FADD st(0), st(1)
+	FADD LOCAL3
+	FST _a
+	MOV EAX, _a
 	RET
 _main ENDP
 

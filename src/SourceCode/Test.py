@@ -1,5 +1,10 @@
 def main():
-    a = 1 + 2 * 3 + 4 * 5 + 6 * 7
-    return 1.5
+    a = 1
+    a = a + 1.5
+    b = a
+    a = 2
+    a = 1.6 + a * 2 + 3 * a   # Bug with a
+    # a = 1 + 1.5
+    return a
 
 main()

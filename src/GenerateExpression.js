@@ -42,7 +42,6 @@ function parseExpression(tree, params = {}) {
         this.regs.available.push(this.regs.inUse.pop());
         break;
       }
-      console.log("########################");
 
       // Else If reg is defined and in used
       this.createCommand(tree)(tree, body, { src: "EAX", dst: reg });
@@ -202,6 +201,8 @@ function unaryOperation({ value }, body, dst) {
  *                     need to parse Binary Operation
  */
 function assignValue(body, { dst, src }, params = {}) {
+  let isFloat = (params) => params.defined && params.defined.type == "FLOAT";
+
   switch (src.type) {
     // Check if src is defined in data then it's a variable
     // Else it's STR
@@ -217,9 +218,18 @@ function assignValue(body, { dst, src }, params = {}) {
     case "INT":
       // Check if the value expected to be a FLOAT but it's an INT value
       // by default, then just go to next step
-      if (!params.defined || params.defined.type != "FLOAT") {
+      if (!isFloat(params)) {
         // Check if dst is a variable, if no then dst should be a reg_name
         body.push(`MOV ${dst.var || dst}, ${src.value !== undefined ? src.value : src}`);
+        break;
+      }
+
+    case "VAR":
+      if (!isFloat(params)) {
+        // Check if dst is a variable if so then write data to the reg
+        // and then write down it to the variable
+        body.push(`MOV ${dst.value || dst}, ${src.value !== undefined ? src.value : src}`);
+        if (dst.var) body.push(`MOV ${dst.var}, EAX`);
         break;
       }
 
@@ -228,19 +238,13 @@ function assignValue(body, { dst, src }, params = {}) {
     case "FLOAT":
       // Initialize FLOAT as a GLOBAL variable in ASM
       src = this.masmCommands.FLOAT.createValue.call(this, { src: src, dst: dst });
+      if (!src) break;
 
       if (dst.var) {
         body.push(`LEA ${dst.value},\ ${src}`);
         body.push(`MOV ${dst.var},\ ${dst.value}`);
       } else body.push(`FLD ${src}`);
 
-      break;
-
-    case "VAR":
-      // Check if dst is a variable if so then write data to the reg
-      // and then write down it to the variable
-      body.push(`MOV ${dst.value || dst}, ${src.value !== undefined ? src.value : src}`);
-      if (dst.var) body.push(`MOV ${dst.var}, EAX`);
       break;
 
     // Check if it suddenly an Unary Operation

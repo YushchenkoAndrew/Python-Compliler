@@ -19,7 +19,6 @@ exports.INT = {
   ">=": "SELGE ",
   "<=": "SETLE ",
 
-  // TODO: Think how to insert unary Operation Checker
   // This method should be called like a part of CodeGenerator Class
   createCommand({ value, right, left }) {
     if (this.isInclude(value, ...exception)) return this.binaryOperation;
@@ -37,7 +36,6 @@ exports.INT = {
   neg: (dst) => `NEG\ ${dst}`,
 };
 
-// TODO:
 exports.FLOAT = {
   // Allowed operations Symbols and it synonym for Assembler
   "+": "FADD ",
@@ -51,10 +49,13 @@ exports.FLOAT = {
     return ({ value }, body, { src }) => {
       // Get the name of GLOBAL variable that contain src value, or return src if it's a reg
       src = src.value ? this.masmCommands.FLOAT.createValue.call(this, { src: src }) : src;
+      console.log("*********************");
+      console.log(src);
 
       // Check if src is a local variable or a reg_name, if src == reg_name
       // that means that at the current moment it's perform a swap
-      if (!src.includes("LOCAL")) body.push(`${this.commands[value]}st(0), st(1)`);
+      // if (!src.includes("LOCAL"))
+      if (this.isEqual(src, "EAX", "EBX", "ECX", "EDX") || !src) body.push(`${this.commands[value]}st(0), st(1)`);
       else body.push(`${this.commands[value]}${src}`);
     };
   },
@@ -62,9 +63,35 @@ exports.FLOAT = {
   createValue({ src = {} }) {
     // This simply create a local variable is demand of
     // And return the name of created variable
-    let name = `LOCAL${this.globalCount++}`;
-    if (src.type) this.code.data.push(`${name}\ dd\ ${src.value + (src.type == "INT" ? "." : "")}`);
-    else this.code.data.push(`${name}\ dd ?`);
+    let name = `LOCAL${this.globalCount}`;
+
+    switch (src.type) {
+      case "INT":
+        this.code.data.push(`${name}\ dd\ ${src.value + "."}`);
+        break;
+
+      case "FLOAT":
+        this.code.data.push(`${name}\ dd\ ${src.value}`);
+        break;
+
+      // FIXME: Bug with Stack Translation from INT to FLOAT
+      case "VAR":
+        if (src.defined.type != "INT") return src.value;
+
+        // this.code.data.push(`${name}\ dd ?`);
+        this.func.body.push("");
+        this.func.body.push("; Transform INT -> FLOAT");
+        this.func.body.push(`FILD ${src.value}`);
+        // this.func.body.push(`FST ${name}`);
+        this.func.body.push("");
+        return "";
+
+      default:
+        this.code.data.push(`${name}\ dd ?`);
+        break;
+    }
+
+    this.globalCount++;
     return name;
   },
 

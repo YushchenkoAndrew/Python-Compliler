@@ -120,7 +120,6 @@ class Generator {
         switch (type) {
           case "Binary Operation":
             this.parseExpression(tree, { func: params.func, defined: { ...params.defined } });
-            console.log(params.value, params);
             if (params.value) this.func.body.push(this.commands.setValue({ dst: params.value, src: "EAX" }));
             // Check if params have any type such as ("RET", "SAVE") and it a FLOAT type
             //  if so then it save current calculated value in a new created var
@@ -136,7 +135,7 @@ class Generator {
             params.var = params.value;
             params.value = "EAX";
             this.assignValue(this.func.body, { src: tree, dst: params });
-            if (params.type && params.defined.type == "FLOAT") {
+            if (params.type && params.defined.type == "FLOAT" && tree.type != "VAR") {
               let name = this.masmCommands.FLOAT.createValue.call(this, {});
               this.func.body.push(`FST ${name}`);
               this.func.body.push(`MOV EAX, ${name}`);
@@ -196,6 +195,11 @@ class Generator {
 
   isIncludeArr(arr, value) {
     for (let i in arr) if (arr[i].includes(value)) return Number(i) + 1;
+    return false;
+  }
+
+  isEqual(value, ...arr) {
+    for (let i in arr) if (value === arr[i]) return Number(i) + 1;
     return false;
   }
 }
