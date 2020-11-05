@@ -155,6 +155,9 @@ class Lexing {
 function changeToken(tokens, index) {
   let { value, line, char } = tokens[index];
 
+  // TODO: Check if tokens line contain any symbols ";" (Line Separation ?)
+  // and add parentheses until it
+
   switch (value) {
     case "^=":
     case "&=":
@@ -176,6 +179,9 @@ function changeToken(tokens, index) {
       tokens.splice(index + 1, 0, tokens[index - 1], { value: value.substr(0, 2), type: lexemes[value.substr(0, 2)], line: line, char: char });
       break;
   }
+
+  tokens.splice(index + 3, 0, { value: "(", type: lexemes["("], line: line, char: char });
+  tokens.push({ value: ")", type: lexemes[")"], line: line, char: tokens.slice(-1)[0].char });
 }
 
 module.exports.Lexing = Lexing;
