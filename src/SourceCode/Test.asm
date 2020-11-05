@@ -26,12 +26,7 @@ Output db 20 dup(?), 0
 OutFloat db 20 dup(?), 0
 
 ; Created Variables
-LOCAL0 dd 1.
-LOCAL1 dd 4.
-LOCAL2 dd 2.
-LOCAL3 dd 3.
-LOCAL4 dd 5.
-LOCAL5 dd 1.2
+
 
 .code
 NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
@@ -202,22 +197,19 @@ CompareSTR ENDP
 ; User Functions
 _main PROC 
 	LOCAL _a:DWORD
-	FLD LOCAL0
-	FADD LOCAL1
-	FMUL LOCAL2
-	FMUL LOCAL3
-	FADD LOCAL4
-	FADD LOCAL5
-	FST _a
+	MOV _a, 1
+	MOV EAX, 1
+	ADD EAX, 2
+	IMUL EAX, _a
+	MOV _a, EAX
 	MOV EAX, _a
 	RET
 _main ENDP
 
 start:
 	invoke _main
-	; Clean FPU Stack
-	FINIT
-	invoke FloatToStr_, EAX, ADDR OutFloat
+	MOV VALUE, 10
+	invoke NumToStr, EAX, ADDR Output
 	invoke MessageBoxA, 0, EAX, ADDR Caption, 0
 	invoke ExitProcess, 0
 end start

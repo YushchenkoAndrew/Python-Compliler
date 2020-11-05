@@ -106,6 +106,7 @@ function parseExpression({ params = {}, priority }) {
       return this.parseExpression({ priority: currPriority });
     }
 
+    // TODO: Create something that will check if all Parentheses is closed
     case "Parentheses": {
       this.index++;
       let right = undefined;
