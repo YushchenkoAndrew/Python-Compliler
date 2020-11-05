@@ -29,7 +29,9 @@ OutFloat db 20 dup(?), 0
 LOCAL0 dd 1.5
 LOCAL1 dd 2.
 LOCAL2 dd 3.
-LOCAL3 dd 1.6
+LOCAL3 dd 4.
+LOCAL4 dd 1.6
+LOCAL5 dd ?
 
 .code
 NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
@@ -115,7 +117,7 @@ FloatToStr_ PROC uses ESI x:DWORD, TextBuff:DWORD
 	ADD ECX, 48
 	MOV BYTE PTR [EDX + EBX], CL
 	INC EBX
-	CMP EBX, 20
+	CMP EBX, 18
 	JNE @loop2
 @end:
 	MOV EAX, TextBuff
@@ -205,7 +207,6 @@ _main PROC
 	
 	; Transform INT -> FLOAT
 	FILD _a
-	
 	FADD LOCAL0
 	FST _a
 	MOV EAX, _a
@@ -214,23 +215,29 @@ _main PROC
 	
 	; Transform INT -> FLOAT
 	FILD _a
-	
 	FMUL LOCAL1
 	FLD LOCAL2
 	
 	; Transform INT -> FLOAT
 	FILD _a
-	
-	FMUL st(0), st(2)
+	FMUL st(0), st(1)
+	FADD st(0), st(2)
+	FLD LOCAL3
+	FMUL _b
 	FADD st(0), st(1)
-	FADD LOCAL3
+	FADD LOCAL4
 	FST _a
-	MOV EAX, _a
+	FLD _a
+	FCHS
+	FST LOCAL5
+	MOV EAX, LOCAL5
 	RET
 _main ENDP
 
 start:
 	invoke _main
+	; Clean FPU Stack
+	FINIT
 	invoke FloatToStr_, EAX, ADDR OutFloat
 	invoke MessageBoxA, 0, EAX, ADDR Caption, 0
 	invoke ExitProcess, 0

@@ -181,6 +181,8 @@ class Generator {
         break;
 
       case "FLOAT":
+        body.push("; Clean FPU Stack");
+        body.push("FINIT");
         body.push(`invoke FloatToStr_, EAX, ADDR OutFloat`);
         break;
     }

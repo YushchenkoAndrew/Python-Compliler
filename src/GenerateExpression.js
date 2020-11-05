@@ -233,15 +233,15 @@ function assignValue(body, { dst, src }, params = {}) {
         break;
       }
 
-    // TODO: Think about transformation from INT to FLOAT if value contains in variable
-    // or reg
     case "FLOAT":
       // Initialize FLOAT as a GLOBAL variable in ASM
       src = this.masmCommands.FLOAT.createValue.call(this, { src: src, dst: dst });
       if (!src) break;
 
       if (dst.var) {
-        body.push(`LEA ${dst.value},\ ${src}`);
+        // TODO: Check if it's correct ??
+        // body.push(`LEA ${dst.value},\ ${src}`);
+        body.push(`MOV ${dst.value},\ ${src}`);
         body.push(`MOV ${dst.var},\ ${dst.value}`);
       } else body.push(`FLD ${src}`);
 

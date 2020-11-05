@@ -112,7 +112,7 @@ FloatToStr_ PROC uses ESI x:DWORD, TextBuff:DWORD
 	ADD ECX, 48
 	MOV BYTE PTR [EDX + EBX], CL
 	INC EBX
-	CMP EBX, 20
+	CMP EBX, 18
 	JNE @loop2
 @end:
 	MOV EAX, TextBuff

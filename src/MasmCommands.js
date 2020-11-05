@@ -43,19 +43,21 @@ exports.FLOAT = {
   "*": "FMUL ",
   "/": "FDIV ",
 
+  stackIndex: 1,
+
   // TODO: Implement Logic Operations such as "OR", "AND", "==", ">", "<"...
   // This method should be called like a part of CodeGenerator Class
   createCommand({ value }) {
     return ({ value }, body, { src }) => {
       // Get the name of GLOBAL variable that contain src value, or return src if it's a reg
       src = src.value ? this.masmCommands.FLOAT.createValue.call(this, { src: src }) : src;
-      console.log("*********************");
-      console.log(src);
 
       // Check if src is a local variable or a reg_name, if src == reg_name
       // that means that at the current moment it's perform a swap
-      // if (!src.includes("LOCAL"))
-      if (this.isEqual(src, "EAX", "EBX", "ECX", "EDX") || !src) body.push(`${this.commands[value]}st(0), st(1)`);
+      //
+      // this.commands.stackIndex point at the FPU Stack where located previously
+      //  calculated Result
+      if (this.isEqual(src, "EAX", "EBX", "ECX", "EDX") || !src) body.push(`${this.commands[value]}st(0), st(${this.commands.stackIndex++})`);
       else body.push(`${this.commands[value]}${src}`);
     };
   },
@@ -64,6 +66,11 @@ exports.FLOAT = {
     // This simply create a local variable is demand of
     // And return the name of created variable
     let name = `LOCAL${this.globalCount}`;
+
+    // Reset FPU Stack Index, stackIndex = 1, that means that
+    // the next value with which you need to do some operation
+    // located at the st(1)
+    this.commands.stackIndex = 1;
 
     switch (src.type) {
       case "INT":
@@ -74,16 +81,12 @@ exports.FLOAT = {
         this.code.data.push(`${name}\ dd\ ${src.value}`);
         break;
 
-      // FIXME: Bug with Stack Translation from INT to FLOAT
       case "VAR":
         if (src.defined.type != "INT") return src.value;
 
-        // this.code.data.push(`${name}\ dd ?`);
         this.func.body.push("");
         this.func.body.push("; Transform INT -> FLOAT");
         this.func.body.push(`FILD ${src.value}`);
-        // this.func.body.push(`FST ${name}`);
-        this.func.body.push("");
         return "";
 
       default:
