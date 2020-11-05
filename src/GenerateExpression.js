@@ -192,6 +192,9 @@ function unaryOperation({ value }, body, dst) {
   }
 }
 
+// TODO: An idea how to save calculated value during the expression
+// just push and pop it to the stack (This should be fine for any type)
+
 /**
  *
  * @param {*} body   - An array where created commands should append

@@ -63,7 +63,7 @@ function parseExpression({ params = {}, priority }) {
       return { type: "Unary Operation", value: operator, exp: exp, priority: currPriority };
     }
 
-    case "Operator":
+    case "Operator": {
       let currPriority = priorityTable[type];
       let operator = this.tokens[this.line][this.index++].value;
 
@@ -104,25 +104,36 @@ function parseExpression({ params = {}, priority }) {
       else branch[key] = { type: "Binary Operation", value: operator, left: branch[key], right: right, priority: currPriority };
 
       return this.parseExpression({ priority: currPriority });
+    }
 
-    // TODO: Implement parentheses simulation on such operations as "*=" "/=" ...
-    // TODO: To implement Parentheses
-    // case "Parentheses":
-    //   this.index++;
-    //   // Check if it Open Parentheses, if so then check next element
-    //   //    else if it Close, then return created value
-    //   if (type.includes("Open")) {
-    //     this.parenthesesCounter++;
-    //     // Check if priority is important, if not then parser next
-    //     //    else return the value in a Parentheses
-    //     if (!priority) return this.parseExpression({ params: this.parseExpression({}), sign: sign });
-    //     else return this.parseExpression({});
-    //   } else if (!params.type) {
-    //     this.errorMessageHandler(`Wrong arithmetic style`, this.tokens[this.line][this.index - 1]);
-    //   } else {
-    //     this.parenthesesCounter--;
-    //     return params;
-    //   }
+    case "Parentheses": {
+      this.index++;
+      let right = undefined;
+
+      if (type.includes("Open")) {
+        let saveTree = this.ast ? JSON.parse(JSON.stringify(this.ast)) : undefined;
+        this.ast = undefined;
+        right = this.parseExpression({});
+
+        console.log(saveTree);
+
+        // Check If Expression in Parentheses is Empty or not
+        if (!right.type) this.errorMessageHandler("Such Operation with Empty Parentheses not allowed", this.tokens[this.line][this.index]);
+
+        // Check if Expression in Parentheses is any type of Operation ?
+        // If so then set the highest Operation Branch to the maximum
+        // priority level that means '0', that need for future ast building
+        if (right.type.includes("Operation")) right.priority = priorityTable[type.split(" ")[1]];
+        this.ast = saveTree;
+
+        // Check if this.ast is undefined this mean one of this situation:
+        // (1 + 2) * 3   --   In this case I send received right value
+        // as a "constant" (send it as a left params)
+        if (!this.ast && priority != -1) return this.parseExpression({ params: right });
+      }
+
+      return right || this.ast || params;
+    }
 
     case "LINE_END":
     default:
