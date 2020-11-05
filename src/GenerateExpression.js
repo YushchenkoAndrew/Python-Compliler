@@ -223,7 +223,7 @@ function assignValue(body, { dst, src }, params = {}) {
       // by default, then just go to next step
       if (!isFloat(params)) {
         // Check if dst is a variable, if no then dst should be a reg_name
-        body.push(`MOV ${dst.var || dst}, ${src.value !== undefined ? src.value : src}`);
+        body.push(`MOV ${dst.var || dst.value || dst}, ${src.value !== undefined ? src.value : src}`);
         break;
       }
 

@@ -116,8 +116,6 @@ function parseExpression({ params = {}, priority }) {
         this.ast = undefined;
         right = this.parseExpression({});
 
-        console.log(saveTree);
-
         // Check If Expression in Parentheses is Empty or not
         if (!right.type) this.errorMessageHandler("Such Operation with Empty Parentheses not allowed", this.tokens[this.line][this.index]);
 

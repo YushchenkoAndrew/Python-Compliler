@@ -107,7 +107,7 @@ function parseReturn() {
   // Check if the function return any of the type, if not then put as a return value '0'
   let { type } = this.tokens[this.line][this.index] || { type: "" };
   if (!this.isInclude(type, "Variable", "Number", "Char", "String", "Unary", "Parentheses"))
-    return { type: "RET", Expression: { value: 0, type: "INT", kind: 10 }, defined: "INT" };
+    return { type: "RET", Expression: { value: "0", type: "INT", kind: 10 }, defined: { type: "INT", kind: 10 } };
   return { type: "RET", Expression: this.parseExpression({}), defined: this.type.curr };
 }
 

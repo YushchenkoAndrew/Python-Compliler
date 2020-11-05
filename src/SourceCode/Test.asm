@@ -14,6 +14,7 @@ NumToStr PROTO :DWORD,:DWORD
 FloatToStr_ PROTO :DWORD,:DWORD
 AddSTR PROTO :DWORD,:DWORD,:DWORD
 CompareSTR PROTO :DWORD,:DWORD
+_test PROTO 
 _main PROTO 
 
 .const
@@ -195,6 +196,10 @@ CompareSTR PROC uses ESI STR1:DWORD, STR2:DWORD
 CompareSTR ENDP
 
 ; User Functions
+_test PROC 
+	MOV EAX, 0
+	RET
+_test ENDP
 _main PROC 
 	LOCAL _a:DWORD
 	MOV _a, 1
@@ -202,7 +207,7 @@ _main PROC
 	ADD EAX, 2
 	IMUL EAX, _a
 	MOV _a, EAX
-	MOV EAX, _a
+	MOV EAX, 5
 	RET
 _main ENDP
 
