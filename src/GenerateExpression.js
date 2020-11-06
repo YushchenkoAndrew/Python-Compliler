@@ -296,7 +296,7 @@ function strOperation({ value }, body, { src, dst = "EAX" }) {
       // Operation because it useless
       if (!this.allocateFreeSpace) return;
 
-      let name = `LOCAL${this.localCount++}`;
+      let name = `LOCAL${this.globalCount++}`;
       this.code.data.push(`${name}\ db\ ${this.allocateFreeSpace}\ dup(0),\ 0`);
       body.push(`invoke\ AddSTR,\ ${dst},\ ${src},\ ADDR\ ${name}`);
       break;
