@@ -14,7 +14,7 @@ function parseExpression({ params = {}, priority }) {
     case "Char":
     case "Number":
       let constant = this.parseConstExpression();
-      this.type = defineType(this.type, { ...constant });
+      this.type = defineType(this.type, { ...constant }, this.ast);
 
       // Change value of this.neg to unary because after a number can be only
       // a binary operation
@@ -34,14 +34,16 @@ function parseExpression({ params = {}, priority }) {
       this.neg = "Binary";
       let varType = this.getDefinedToken(["Statement", "Declaration"], "name", `_${value}`, this.currLevel);
 
-      // TODO: Create better solution for FUNC_CALL
+      // FIXME: Create better solution for FUNC_CALL
       if (varType.type == "FUNC") this.index += 2;
-      varType = varType.defined;
 
-      this.type = defineType(this.type, { ...varType });
+      // console.log();
+      // if (varType.defined.type == "ANY" && this.type.curr.type) varType.defined = this.type.curr;
 
-      if (!this.ast && priority != -1) return this.parseExpression({ params: { value: `_${value}`, type: type, defined: varType } });
-      return { value: `_${value}`, type: type, defined: varType };
+      this.type = defineType(this.type, { ...varType.defined }, this.ast);
+
+      if (!this.ast && priority != -1) return this.parseExpression({ params: { value: `_${value}`, type: type, defined: varType.defined } });
+      return { value: `_${value}`, type: type, defined: varType.defined };
 
     case "Unary": {
       let currPriority = priorityTable[type];
@@ -73,6 +75,7 @@ function parseExpression({ params = {}, priority }) {
 
       this.ast = this.ast || { type: "Binary Operation", value: operator, left: params, right: undefined, priority: currPriority };
       let right = this.parseExpression({ priority: currPriority });
+
       this.stateChecker("type", this.type.curr, "Such arithmetic syntax don't allow", ...this.allowedOperations[operator][this.type.prev.type]);
 
       // Initialize a basic AST if the AST is not define
@@ -82,7 +85,7 @@ function parseExpression({ params = {}, priority }) {
         // If Unary operation have a lower priority than the Binary operation, then swap them
         if (branch && branch.priority != currPriority) {
           branch.exp = { type: "Binary Operation", value: operator, left: branch.exp, right: right, priority: currPriority };
-          this.ast = JSON.parse(JSON.stringify(params));
+          this.ast = copyTree(params);
         } else this.ast.right = right;
 
         return this.parseExpression({ priority: currPriority });
@@ -112,7 +115,7 @@ function parseExpression({ params = {}, priority }) {
       let right = undefined;
 
       if (type.includes("Open")) {
-        let saveTree = this.ast ? JSON.parse(JSON.stringify(this.ast)) : undefined;
+        let saveTree = this.ast ? copyTree(this.ast) : undefined;
         this.ast = undefined;
         right = this.parseExpression({});
 
@@ -124,6 +127,7 @@ function parseExpression({ params = {}, priority }) {
         // priority level that means '0', that need for future ast building
         if (right.type.includes("Operation")) right.priority = priorityTable[type.split(" ")[1]];
         this.ast = saveTree;
+        defineAnyType(this.type.curr, this.ast);
 
         // Check if this.ast is undefined this mean one of this situation:
         // (1 + 2) * 3   --   In this case I send received right value
@@ -146,7 +150,7 @@ function parseExpression({ params = {}, priority }) {
   }
 
   function updateBranch(branch, data) {
-    data = JSON.parse(JSON.stringify(data));
+    data = copyTree(data);
 
     if (branch.exp) {
       delete branch.exp;
@@ -157,11 +161,26 @@ function parseExpression({ params = {}, priority }) {
     for (let key in data) branch[key] = JSON.parse(JSON.stringify(data[key]));
   }
 
-  function defineType({ prev, curr }, next) {
+  function defineType({ prev, curr }, next, branch) {
     delete next.value;
-    if (!curr.type) curr = { ...next };
+    defineAnyType(next, branch);
+    if (!curr.type || curr.type == "ANY") curr = { ...next };
     else if (curr.type == "STR") next.length += curr.length;
     return { prev: { ...curr }, curr: curr.type == "FLOAT" && next.type == "INT" ? { ...curr } : { ...next } };
+  }
+
+  function defineAnyType(type, branch = {}) {
+    if (branch.left) defineAnyType(type, branch.left);
+    if (branch.right) defineAnyType(type, branch.right);
+    if (branch.exp) defineAnyType(type, branch.exp);
+    if (branch.type == "VAR" && branch.defined.type == "ANY") updateBranch(branch.defined, type);
+  }
+
+  function copyTree(branch) {
+    let obj = {};
+    for (let key in branch) obj[key] = key == "left" || key == "right" || key == "exp" ? copyTree(branch[key]) : branch[key];
+
+    return obj;
   }
 }
 

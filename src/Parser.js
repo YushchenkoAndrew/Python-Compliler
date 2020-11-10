@@ -74,7 +74,7 @@ class Parser {
 
         // TODO: Not the best solution, have some issues
         // Put created upper head variables in header
-        this.currLevel.header.push(...this.currLevel.body);
+        this.currLevel.header.push(...this.currLevel.body, ...body.slice(-1)[0].Declaration.params);
         this.currLevel.body = [];
 
         // Get a next level, because of the recursion I could not save

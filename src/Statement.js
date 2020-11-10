@@ -4,6 +4,7 @@ function stateChecker(key, token, error, ...expect) {
   if (!token || !this.isInclude(token[key], ...expect)) this.errorMessageHandler(error, token || { line: this.line, char: 0 });
 }
 
+// TODO: Improve this to be able to handle such syntax as => "def func(a, b = 2):"
 function getParams(...allowed) {
   let params = [];
 
@@ -26,7 +27,10 @@ function parseFunc() {
 
   this.stateChecker("type", this.tokens[this.line][this.index++], "Open Parentheses are missing", "Open Parentheses");
 
-  let params = this.getParams("Variable");
+  // Create type "ANY" which is mean that variable is undefined
+  // TODO: Think about do I need to create a arguments (params) as Statements ?
+  // Complete Expression part
+  let params = this.getParams("Variable").map((param) => ({ Statement: { type: "VAR", name: `_${param}`, Expression: undefined, defined: { type: "ANY" } } }));
 
   this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
   this.stateChecker("type", this.tokens[this.line][this.index++], "Indented Block is missing", "Start Block");
