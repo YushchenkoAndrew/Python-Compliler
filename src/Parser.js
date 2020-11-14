@@ -10,8 +10,6 @@ class Parser {
     // Deep copy data, for remove linking
     this.tokens = JSON.parse(JSON.stringify(tokens));
     this.syntaxTree = {};
-    this.parenthesesCounter = 0;
-    this.prevType = undefined;
 
     this.line = 0; // Curr line
     this.index = 0; // Curr Index for tokens
@@ -31,9 +29,6 @@ class Parser {
   start() {
     try {
       this.initStateMachine();
-
-      if (this.parenthesesCounter)
-        this.errorMessageHandler(`Missed ${this.parenthesesCounter > 0 ? "Closing" : "Opening"} Parentheses`, this.tokens[this.index - 1]);
     } catch (err) {
       console.log("\x1b[31m", `~ Error:\n\t${err.message}`, "\x1b[0m");
       this.syntaxTree = undefined;
@@ -54,10 +49,11 @@ class Parser {
 
   initStateMachine(level = 0, forcedBlock = false) {
     let { type } = this.tokens[this.line][this.index] || { type: this.tokens[this.line + 1] ? "NEXT" : "EOF" };
+
     this.ast = undefined;
     this.neg = "Unary";
-
     this.type = { prev: {}, curr: {} };
+    this.parentheses = 0;
 
     switch (type.split(/\ /)[0]) {
       case "Function": {
@@ -74,7 +70,7 @@ class Parser {
 
         // TODO: Not the best solution, have some issues
         // Put created upper head variables in header
-        this.currLevel.header.push(...this.currLevel.body, ...body.slice(-1)[0].Declaration.params);
+        this.currLevel.header.push(...this.currLevel.body, ...body.slice(-1)[0].Declaration.params.map((param) => ({ Statement: param })));
         this.currLevel.body = [];
 
         // Get a next level, because of the recursion I could not save

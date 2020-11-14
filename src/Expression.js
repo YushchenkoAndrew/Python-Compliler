@@ -20,6 +20,8 @@ function parseExpression({ params = {}, priority }) {
       // a binary operation
       this.neg = "Binary";
 
+      // FIXME: Fix the bug with such syntax => "a = 2 3"
+
       // If this.ast is not define then call parseExpression, it's need for start
       // up the recursion
       if (!this.ast && priority != -1) return this.parseExpression({ params: constant });
@@ -27,23 +29,18 @@ function parseExpression({ params = {}, priority }) {
 
     case "Variable":
       let { value } = this.tokens[this.line][this.index++];
-      type = "VAR";
 
       // Change value of this.neg to unary because after a number can be only
       // a binary operation
       this.neg = "Binary";
       let varType = this.getDefinedToken(["Statement", "Declaration"], "name", `_${value}`, this.currLevel);
 
-      // FIXME: Create better solution for FUNC_CALL
-      if (varType.type == "FUNC") this.index += 2;
-
-      // console.log();
-      // if (varType.defined.type == "ANY" && this.type.curr.type) varType.defined = this.type.curr;
-
+      // Create Expression that depends on type, if it FUNC then call parserFuncCaller
+      varType = varType.type == "FUNC" ? this.parseFuncCaller() : { value: `_${value}`, type: "VAR", defined: varType.defined };
       this.type = defineType(this.type, { ...varType.defined }, this.ast);
 
-      if (!this.ast && priority != -1) return this.parseExpression({ params: { value: `_${value}`, type: type, defined: varType.defined } });
-      return { value: `_${value}`, type: type, defined: varType.defined };
+      if (!this.ast && priority != -1) return this.parseExpression({ params: varType });
+      return varType;
 
     case "Unary": {
       let currPriority = priorityTable[type];
@@ -111,11 +108,12 @@ function parseExpression({ params = {}, priority }) {
 
     // TODO: Create something that will check if all Parentheses is closed
     case "Parentheses": {
-      this.index++;
+      if (this.parentheses || !type.includes("Close")) this.index++;
       let right = undefined;
 
       if (type.includes("Open")) {
         let saveTree = this.ast ? copyTree(this.ast) : undefined;
+        this.parentheses++;
         this.ast = undefined;
         right = this.parseExpression({});
 
@@ -133,7 +131,7 @@ function parseExpression({ params = {}, priority }) {
         // (1 + 2) * 3   --   In this case I send received right value
         // as a "constant" (send it as a left params)
         if (!this.ast && priority != -1) return this.parseExpression({ params: right });
-      }
+      } else this.parentheses--;
 
       return right || this.ast || params;
     }
@@ -141,6 +139,7 @@ function parseExpression({ params = {}, priority }) {
     case "LINE_END":
     default:
       if (this.ast) drawExpression(this.ast);
+      if (this.parentheses != 0) this.errorMessageHandler("Error with Parentheses", { line: this.line, char: 0 });
       return this.ast || params;
   }
 
@@ -178,7 +177,7 @@ function parseExpression({ params = {}, priority }) {
 
   function copyTree(branch) {
     let obj = {};
-    for (let key in branch) obj[key] = key == "left" || key == "right" || key == "exp" ? copyTree(branch[key]) : branch[key];
+    for (let key in branch) obj[key] = obj[key] instanceof Object && key != "defined" ? copyTree(branch[key]) : branch[key];
 
     return obj;
   }
@@ -223,7 +222,7 @@ String.prototype.splice = function (index, rm, str) {
 // Create a simple algorithm for drawing AST, it will improve
 // Expression debugging
 function drawExpression(branch, i, j, lines) {
-  let { value, type } = branch;
+  let { value, type, name } = branch;
   switch (i && type) {
     case "FLOAT":
     case "STR":
@@ -231,6 +230,10 @@ function drawExpression(branch, i, j, lines) {
     case "INT":
       value += "";
       lines[i] = lines[i].splice(j, value.length, value);
+      break;
+
+    case "FUNC_CALL":
+      lines[i] = lines[i].splice(j, name.length, name);
       break;
 
     case "Binary Operation":

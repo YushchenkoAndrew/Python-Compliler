@@ -1,7 +1,7 @@
 const { changeToken } = require("./Lexing");
 
 function stateChecker(key, token, error, ...expect) {
-  if (!token || !this.isInclude(token[key], ...expect)) this.errorMessageHandler(error, token || { line: this.line, char: 0 });
+  if (!token || !token[key] || !this.isInclude(token[key], ...expect)) this.errorMessageHandler(error, token || { line: this.line, char: 0 });
 }
 
 // TODO: Improve this to be able to handle such syntax as => "def func(a, b = 2):"
@@ -30,7 +30,7 @@ function parseFunc() {
   // Create type "ANY" which is mean that variable is undefined
   // TODO: Think about do I need to create a arguments (params) as Statements ?
   // Complete Expression part
-  let params = this.getParams("Variable").map((param) => ({ Statement: { type: "VAR", name: `_${param}`, Expression: undefined, defined: { type: "ANY" } } }));
+  let params = this.getParams("Variable").map((param) => ({ type: "VAR", name: `_${param}`, Expression: undefined, defined: { type: "ANY" } }));
 
   this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
   this.stateChecker("type", this.tokens[this.line][this.index++], "Indented Block is missing", "Start Block");
@@ -137,18 +137,39 @@ function parseVariableAssign() {
   return { type: "VAR", name: `_${value}`, Expression: this.parseExpression({}), defined: this.type.curr };
 }
 
-function parseFuncCaller() {
-  let { value } = this.tokens[this.line][this.index - 1];
-  this.index++;
+function getArgs(params) {
+  let args = [];
+  // TODO: Change ast copy from JSON to copyTree ...
+  let prevState = { type: JSON.parse(JSON.stringify(this.type)), ast: this.ast && JSON.parse(JSON.stringify(this.ast)), parentheses: this.parentheses };
 
-  // TODO: params, I don't know should I declare each params as own Expression, because it's seems like that
-  // But for now it would be a simple declaration
-  // let params = [];
-  let params = this.getParams("Variable", "Number", "Char", "String", "Unary", "Parentheses");
-  let type = this.getDefinedToken("Declaration", "name", `_${value}`, this.currLevel).defined;
+  for (let param of params) {
+    let type = param.defined.type == "ANY" ? ["INT", "VAR", "STR", "FLOAT", "ANY"] : [param.defined.type];
+    this.type = { prev: {}, curr: {} };
+    this.ast = undefined;
 
+    args.push(this.parseExpression({}));
+    this.stateChecker("type", this.type.curr, "Wrong arguments declaration", ...type);
+
+    // Check next step if it Close Parentheses then exit from the loop
+    // Else check if the next token is comma
+    if ((this.tokens[this.line][this.index] || {}).type == "Close Parentheses") break;
+    this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong Function declaration Syntax", "Comma");
+  }
+
+  // Check on Closing Parentheses and restore previous State
   this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
-  return { type: "FUNC_CALL", name: `_${value}`, params: params, defined: type };
+  this.type = prevState.type;
+  this.ast = prevState.ast;
+  this.parentheses = prevState.parentheses;
+
+  return args;
+}
+
+function parseFuncCaller() {
+  let { value } = this.tokens[this.line][this.index++ - 1];
+
+  let { params, defined } = this.getDefinedToken("Declaration", "name", `_${value}`, this.currLevel);
+  return { type: "FUNC_CALL", name: `_${value}`, params: this.getArgs(params), defined: defined };
 }
 
 exports.parseFunc = parseFunc;
@@ -159,4 +180,5 @@ exports.parseVariableAssign = parseVariableAssign;
 exports.parseIf = parseIf;
 exports.parseElse = parseElse;
 exports.getParams = getParams;
+exports.getArgs = getArgs;
 exports.stateChecker = stateChecker;
