@@ -141,6 +141,7 @@ function getArgs(params) {
   let args = [];
   // TODO: Change ast copy from JSON to copyTree ...
   let prevState = { type: JSON.parse(JSON.stringify(this.type)), ast: this.ast && JSON.parse(JSON.stringify(this.ast)), parentheses: this.parentheses };
+  this.stateChecker("type", this.tokens[this.line][this.index - 1], "Wrong Function declaration Syntax", "Open Parentheses");
 
   for (let param of params) {
     let type = param.defined.type == "ANY" ? ["INT", "VAR", "STR", "FLOAT", "ANY"] : [param.defined.type];
