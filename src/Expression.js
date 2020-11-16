@@ -165,7 +165,7 @@ function parseExpression({ params = {}, priority }) {
     defineAnyType(next, branch);
     if (!curr.type || curr.type == "ANY") curr = { ...next };
     else if (curr.type == "STR") next.length += curr.length;
-    return { prev: { ...curr }, curr: curr.type == "FLOAT" && next.type == "INT" ? { ...curr } : { ...next } };
+    return { prev: { ...curr }, curr: (curr.type == "FLOAT" && next.type == "INT") || next.type == "ANY" ? { ...curr } : { ...next } };
   }
 
   function defineAnyType(type, branch = {}) {

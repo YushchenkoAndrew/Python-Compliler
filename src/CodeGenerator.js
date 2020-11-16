@@ -81,7 +81,7 @@ class Generator {
 
             // We're certain that we declare new variable by another variable
             // There for we need to check if this is our first time or not
-            if (this.isInclude(this.func.header, "PROC") && !this.isInclude(this.func.header, `\ ${tree.name}:`, `,${tree.name}:`)) {
+            if (this.isInclude(this.func.header, "PROC") && !this.isInclude(this.func.header, `LOCAL\ ${tree.name}:`, `PROC\ ${tree.name}`, `${tree.name}:`)) {
               this.func.header.push(`LOCAL ${tree.name}:DWORD`);
             }
             break;

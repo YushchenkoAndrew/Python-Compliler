@@ -265,8 +265,13 @@ function assignValue(body, { dst, src }, params = {}) {
       // TODO: Change this....
       if (src.defined.type == "FLOAT") this.masmCommands.FLOAT.createValue.call(this, { src: src });
 
-      if (dst != "EAX") {
-        this.commands.swap(body, { src: "EAX", dst: dst });
+      if (dst.var) {
+        // TODO: Check if it's correct ??
+        // body.push(`LEA ${dst.value},\ ${src}`);
+        body.push(`MOV ${dst.var},\ EAX`);
+      } else if ((dst.value || dst) != "EAX") {
+        console.log(dst);
+        this.commands.swap(body, { src: "EAX", dst: dst.value || dst });
         body.push("POP EAX");
       }
       body.push("POP EDX");

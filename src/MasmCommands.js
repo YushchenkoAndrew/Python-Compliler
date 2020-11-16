@@ -92,7 +92,8 @@ exports.FLOAT = {
       case "FUNC_CALL":
         this.code.data.push(`${name}\ dd ?`);
         this.func.body.push(`MOV ${name}, EAX`);
-        this.func.body.push(`${src.defined.type != "INT" ? "FLD" : "FILD"}\ ${name}`);
+        if (src.defined.type != "INT") this.func.body.push(`FLD\ ${name}`);
+        else this.func.body.push(`FILD\ ${name}`);
         break;
 
       default:

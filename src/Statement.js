@@ -130,13 +130,14 @@ function parseVariableAssign() {
 
   this.stateChecker("type", this.tokens[this.line][this.index], "Type error", "Variable", "Number", "String", "Unary", "Parentheses");
 
-  console.log(type);
-
   // Check if it's assign with an operation
   if (this.isInclude(type, "Add", "Sub", "Mul", "Div", "Mod", "Or", "And", "Xor", "SL", "SR")) changeToken(this.tokens[this.line], this.index - 1);
   return { type: "VAR", name: `_${value}`, Expression: this.parseExpression({}), defined: this.type.curr };
 }
 
+//
+// TODO: TO rebuild type of function's body depends on input value, if it's allowed
+//
 function getArgs(params) {
   let args = [];
   // TODO: Change ast copy from JSON to copyTree ...
@@ -149,7 +150,9 @@ function getArgs(params) {
     this.ast = undefined;
 
     args.push(this.parseExpression({}));
-    this.stateChecker("type", this.type.curr, "Wrong arguments declaration", ...type);
+    let curr = this.type.curr.type == "INT" && type[0] == "FLOAT" ? { type: "FLOAT" } : this.type.curr;
+    this.stateChecker("type", curr, "Wrong arguments declaration", ...type);
+    args.push({ type: "NONE", Expression: args.pop(), defined: curr });
 
     // Check next step if it Close Parentheses then exit from the loop
     // Else check if the next token is comma

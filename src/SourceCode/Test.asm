@@ -14,7 +14,8 @@ NumToStr PROTO :DWORD,:DWORD
 FloatToStr_ PROTO :DWORD,:DWORD
 AddSTR PROTO :DWORD,:DWORD,:DWORD
 CompareSTR PROTO :DWORD,:DWORD
-_test PROTO 
+_sum PROTO :DWORD,:DWORD
+_pow2 PROTO :DWORD
 _main PROTO 
 
 .const
@@ -27,7 +28,7 @@ Output db 20 dup(?), 0
 OutFloat db 20 dup(?), 0
 
 ; Created Variables
-
+LOCAL0 dd ?
 
 .code
 NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
@@ -196,25 +197,36 @@ CompareSTR PROC uses ESI STR1:DWORD, STR2:DWORD
 CompareSTR ENDP
 
 ; User Functions
-_test PROC 
-	MOV EAX, 0
+_sum PROC _a:DWORD,_b:DWORD
+	MOV EAX, _a
+	ADD EAX, _b
 	RET
-_test ENDP
+_sum ENDP
+
+_pow2 PROC _a:DWORD
+	MOV EAX, _a
+	IMUL EAX, _a
+	RET
+_pow2 ENDP
+
 _main PROC 
 	LOCAL _a:DWORD
-	MOV _a, 1
-	MOV EAX, 1
-	ADD EAX, 2
-	IMUL EAX, _a
+	PUSH EDX
+	PUSH EAX
+	PUSH EDX
+	PUSH EAX
+	invoke _pow2, 2
+	POP EDX
+	MOV LOCAL0, EAX
+	invoke _sum, 5, LOCAL0
 	MOV _a, EAX
-	MOV EAX, 5
+	POP EDX
+	MOV EAX, _a
 	RET
 _main ENDP
 
 start:
 	invoke _main
-	MOV VALUE, 10
-	invoke NumToStr, EAX, ADDR Output
 	invoke MessageBoxA, 0, EAX, ADDR Caption, 0
 	invoke ExitProcess, 0
 end start
