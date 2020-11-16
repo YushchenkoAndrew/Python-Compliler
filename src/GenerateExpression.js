@@ -62,9 +62,9 @@ function parseExpression(tree, params = {}) {
 
   function analyzeParams(key, tree, body, params) {
     // Check on Unary Operation
-    if (this.isInclude(params[key].type, "Unary")) {
-      this.assignValue(body, { src: params[key], dst: "EDX" });
-      params[key] = "EDX";
+    if (this.isInclude(params[key].type, "Unary", "FUNC_CALL")) {
+      this.assignValue(body, { src: params[key], dst: "EBX" });
+      params[key] = "EBX";
     }
 
     this.createCommand(tree)(tree, body, params);
@@ -250,6 +250,29 @@ function assignValue(body, { dst, src }, params = {}) {
 
       break;
 
+    // TODO: Clean this!!!
+    case "FUNC_CALL":
+      console.log("NOOOOOOOOOOOOOOOO");
+      console.log(src, dst);
+
+      // TODO: Depends on type save current values
+      body.push("PUSH EDX");
+      if (dst != "EAX") body.push("PUSH EAX");
+
+      // body.push(`invoke ${[src.name, ...args].join(", ")}`);
+      body.push(`invoke ${[src.name, ...this.parseFuncParams(src.params, params)].join(", ")}`);
+
+      // TODO: Change this....
+      if (src.defined.type == "FLOAT") this.masmCommands.FLOAT.createValue.call(this, { src: src });
+
+      if (dst != "EAX") {
+        this.commands.swap(body, { src: "EAX", dst: dst });
+        body.push("POP EAX");
+      }
+      body.push("POP EDX");
+
+      break;
+
     // Check if it suddenly an Unary Operation
     // Then go deeper to a level
     case "Unary Operation":
@@ -283,6 +306,9 @@ function assignValue(body, { dst, src }, params = {}) {
       this.commands.swap(body, { src: src, dst: dst });
   }
 }
+
+// FIXME: Bug with finding appropriate string space
+// I guess it can be fixed on Parser...
 
 function strOperation({ value }, body, { src, dst = "EAX" }) {
   // Check if src is defined in data then it's a variable

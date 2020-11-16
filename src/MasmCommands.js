@@ -16,7 +16,7 @@ exports.INT = {
   "==": "SETE ",
   ">": "SETG ",
   "<": "SETL ",
-  ">=": "SELGE ",
+  ">=": "SETGE ",
   "<=": "SETLE ",
 
   // This method should be called like a part of CodeGenerator Class
@@ -88,6 +88,12 @@ exports.FLOAT = {
         this.func.body.push("; Transform INT -> FLOAT");
         this.func.body.push(`FILD ${src.value}`);
         return "";
+
+      case "FUNC_CALL":
+        this.code.data.push(`${name}\ dd ?`);
+        this.func.body.push(`MOV ${name}, EAX`);
+        this.func.body.push(`${src.defined.type != "INT" ? "FLD" : "FILD"}\ ${name}`);
+        break;
 
       default:
         this.code.data.push(`${name}\ dd ?`);

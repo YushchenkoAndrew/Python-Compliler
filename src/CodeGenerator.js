@@ -39,7 +39,7 @@ class Generator {
         .template.replace("$HEADER", this.code.header.join("\n") || "")
         .replace("$CONST", this.code.const.join("\n") || "")
         .replace("$DATA", this.code.data.join("\n") || "")
-        .replace("$FUNC", this.code.func.join("\n") || "")
+        .replace("$FUNC", this.code.func.join("\n\n") || "")
         .replace("$START", "\t" + this.code.start.join("\n\t"))
     );
   }
@@ -62,7 +62,7 @@ class Generator {
 
         // Add input params if demands of
         this.code.header.push(`${tree.name} PROTO\ ` + tree.params.map((arg) => ":DWORD").join(","));
-        this.func.header.push(`${tree.name} PROC\ ` + tree.params.map((arg) => `_${arg}:DWORD`).join(","));
+        this.func.header.push(`${tree.name} PROC\ ` + tree.params.map((arg) => `${arg.name}:DWORD`).join(","));
 
         this.labelCount = 0;
         this.parseBody(tree.body, { func: tree.name });
@@ -77,9 +77,11 @@ class Generator {
           case "VAR":
             this.redirect("Expression", tree.Expression, { value: tree.name, defined: tree.defined, ...params });
 
+            // FIXME: Some bug with local and variable that sended
+
             // We're certain that we declare new variable by another variable
             // There for we need to check if this is our first time or not
-            if (this.isInclude(this.func.header, "PROC") && !this.isInclude(this.func.header, `LOCAL\ ${tree.name}:`)) {
+            if (this.isInclude(this.func.header, "PROC") && !this.isInclude(this.func.header, `\ ${tree.name}:`, `,${tree.name}:`)) {
               this.func.header.push(`LOCAL ${tree.name}:DWORD`);
             }
             break;
@@ -93,7 +95,8 @@ class Generator {
           case "FUNC_CALL":
             // This Checks if func is called from another func or not
             let body = this.func.header[0] ? this.func.body : this.code.start;
-            body.push(`invoke ${[tree.name, ...tree.params].join(", ")}`);
+
+            body.push(`invoke ${[tree.name, ...this.parseFuncParams(tree.params, params)].join(", ")}`);
             this.convertType(this.forcedType || tree.defined, body);
             // Reset force type
             this.forcedType = 0;
@@ -113,7 +116,7 @@ class Generator {
 
       case "Expression": {
         // Get the right commands for the specific type
-        this.commands = this.masmCommands[params.defined.type];
+        this.commands = this.masmCommands[params.defined.type == "ANY" ? "INT" : params.defined.type];
         this.createCommand = this.commands.createCommand.bind(this);
         this.allocateFreeSpace = params.defined.length || 0; // This param needed for declaration an array in ASM
 
@@ -173,6 +176,32 @@ class Generator {
     this.func.body.push(`\r@ENDIF${label}:`);
   }
 
+  parseFuncParams(args, params) {
+    let data = [];
+
+    for (let arg of args) {
+      let { type, value } = arg.Expression;
+
+      if (!this.isInclude(type, "INT", "VAR")) {
+        this.redirect("Expression", arg.Expression, { type: "SAVE", defined: arg.defined, ...params });
+        value = getGlobal.call(this, arg.defined);
+      }
+
+      data.push(value);
+    }
+    return data;
+
+    // Additional functions
+    function getGlobal({ type }) {
+      if (type == "FLOAT") return `LOCAL${this.globalCount - 1}`;
+
+      let name = `LOCAL${this.globalCount++}`;
+      this.code.data.push(`${name}\ dd\ ?`);
+      this.func.body.push(`MOV ${name}, EAX`);
+      return name;
+    }
+  }
+
   convertType({ type, kind = 0 }, body) {
     switch (type) {
       case "INT":
@@ -190,13 +219,13 @@ class Generator {
   }
 
   isInclude(value, ...arr) {
-    if (Array.isArray(value)) return this.isIncludeArr(value, ...arr);
+    if (Array.isArray(value)) return this.isIncludeArr(value, arr);
     for (let i in arr) if (value.includes(arr[i])) return Number(i) + 1;
     return false;
   }
 
   isIncludeArr(arr, value) {
-    for (let i in arr) if (arr[i].includes(value)) return Number(i) + 1;
+    for (let i in arr) for (let v of value) if (arr[i].includes(v)) return Number(i) + 1;
     return false;
   }
 
