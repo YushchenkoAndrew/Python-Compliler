@@ -30,7 +30,7 @@ function parseFunc() {
   // Create type "ANY" which is mean that variable is undefined
   // TODO: Think about do I need to create a arguments (params) as Statements ?
   // Complete Expression part
-  let params = this.getParams("Variable").map((param) => ({ type: "VAR", name: `_${param}`, Expression: undefined, defined: { type: "ANY" } }));
+  let params = this.getParams("Variable").map((param) => ({ type: "VAR", name: `_${param}`, defined: { type: "ANY" } }));
 
   this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
   this.stateChecker("type", this.tokens[this.line][this.index++], "Indented Block is missing", "Start Block");
@@ -137,6 +137,8 @@ function parseVariableAssign() {
 
 //
 // TODO: TO rebuild type of function's body depends on input value, if it's allowed
+//          For this You need to add another variable which will link to the final
+//          Object
 //
 function getArgs(params) {
   let args = [];
@@ -148,10 +150,14 @@ function getArgs(params) {
     let type = param.defined.type == "ANY" ? ["INT", "VAR", "STR", "FLOAT", "ANY"] : [param.defined.type];
     this.type = { prev: {}, curr: {} };
     this.ast = undefined;
+    this.parentheses = 0;
 
     args.push(this.parseExpression({}));
     let curr = this.type.curr.type == "INT" && type[0] == "FLOAT" ? { type: "FLOAT" } : this.type.curr;
     this.stateChecker("type", curr, "Wrong arguments declaration", ...type);
+    // TODO: Somehow update the final body
+    // if (param.defined.type == "ANY") param.defined = this.type.curr;
+
     args.push({ type: "NONE", Expression: args.pop(), defined: curr });
 
     // Check next step if it Close Parentheses then exit from the loop
@@ -162,6 +168,7 @@ function getArgs(params) {
 
   // Check on Closing Parentheses and restore previous State
   this.stateChecker("type", this.tokens[this.line][this.index++], "Close Parentheses are missing", "Close Parentheses");
+
   this.type = prevState.type;
   this.ast = prevState.ast;
   this.parentheses = prevState.parentheses;
