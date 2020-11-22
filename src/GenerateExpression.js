@@ -93,8 +93,10 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
       // If yes, then save data in the stack
       if (flag) body.push(`PUSH\ EDX`);
 
+      // Check if reg is equal to src, if so then it's mean that you don't
+      // need to move data to available reg, because that already have written
+      if (reg != src) body.push(`MOV\ ${reg},\ ${src}`);
       body.push(`XOR\ EDX,\ EDX`);
-      body.push(`MOV\ ${reg},\ ${src}`);
       body.push(`${this.commands[value]}${reg}`);
       if (value == "%") body.push(`MOV\ EAX,\ EDX`);
 
@@ -138,7 +140,7 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
     }
 
     case "and": {
-      let reg = this.regs.available[0];
+      let reg = this.regs.available.filter((reg) => reg != src)[0];
       body.push("");
       body.push("; Logic AND");
       body.push(`XOR\ ${reg},\ ${reg}`);
@@ -152,7 +154,7 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
     }
 
     case "or": {
-      let reg = this.regs.available[0];
+      let reg = this.regs.available.filter((reg) => reg != src)[0];
       body.push("");
       body.push("; Logic OR");
       body.push(`XOR\ ${reg},\ ${reg}`);
@@ -215,7 +217,7 @@ function assignValue(body, { dst, src }, params = {}) {
 
       // If dst is a LOCAL variable after all, then mov
       // defined address from reg (reg_name = dst.value) to LOCAL variable
-      if (dst.var) body.push(`MOV ${dst.var}, ${dst.value}`);
+      if (dst.var) body.push(...this.masmCommands.STR.setVar(dst));
       break;
 
     case "INT":
@@ -241,41 +243,20 @@ function assignValue(body, { dst, src }, params = {}) {
       src = this.masmCommands.FLOAT.createValue.call(this, { src: src, dst: dst });
       if (!src) break;
 
-      if (dst.var) {
-        // TODO: Check if it's correct ??
-        // body.push(`LEA ${dst.value},\ ${src}`);
-        body.push(`MOV ${dst.value},\ ${src}`);
-        body.push(`MOV ${dst.var},\ ${dst.value}`);
-      } else body.push(`FLD ${src}`);
+      if (dst.var) body.push(...this.masmCommands.FLOAT.setVar(dst, src));
+      else body.push(`FLD ${src}`);
 
       break;
 
-    // TODO: Clean this!!!
+    // TODO: Solve problem with FDIV
     case "FUNC_CALL":
-      console.log("NOOOOOOOOOOOOOOOO");
-      console.log(src, dst);
+      let regs = (dst.value || dst) != "EAX" ? [...this.regs.inUse, "EAX"] : this.regs.inUse;
+      let names = this.commands.saveValue.call(this, { body, regs });
 
-      // TODO: Depends on type save current values
-      body.push("PUSH EDX");
-      if (dst != "EAX") body.push("PUSH EAX");
-
-      // body.push(`invoke ${[src.name, ...args].join(", ")}`);
       body.push(`invoke ${[src.name, ...this.parseFuncParams(src.params, params)].join(", ")}`);
+      src = this.commands.restoreValue.call(this, { body, regs, names, dst, createValue: this.commands.createValue.bind(this, { src }) });
 
-      // TODO: Change this....
-      if (src.defined.type == "FLOAT") this.masmCommands.FLOAT.createValue.call(this, { src: src });
-
-      if (dst.var) {
-        // TODO: Check if it's correct ??
-        // body.push(`LEA ${dst.value},\ ${src}`);
-        body.push(`MOV ${dst.var},\ EAX`);
-      } else if ((dst.value || dst) != "EAX") {
-        console.log(dst);
-        this.commands.swap(body, { src: "EAX", dst: dst.value || dst });
-        body.push("POP EAX");
-      }
-      body.push("POP EDX");
-
+      if (dst.var) body.push(...this.commands.setVar(dst, src));
       break;
 
     // Check if it suddenly an Unary Operation
