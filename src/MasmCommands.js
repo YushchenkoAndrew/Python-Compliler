@@ -34,6 +34,28 @@ exports.INT = {
   },
 
   neg: (dst) => `NEG\ ${dst}`,
+
+  createValue({ src }) {
+    console.log("NOOOOO");
+    return src;
+  },
+
+  saveValue({ body, regs }) {
+    if (!regs.length) return;
+
+    for (let reg of regs) body.push(`PUSH ${reg}`);
+  },
+
+  restoreValue({ body, regs, dst }) {
+    if ((dst.value || dst) != "EAX") this.commands.swap(body, { src: "EAX", dst: dst.value || dst });
+    if (!regs.length) return;
+
+    for (let reg of regs.reverse()) body.push(`POP ${reg}`);
+  },
+
+  setVar({ var: v, value }) {
+    return [`MOV ${v}, ${value}`];
+  },
 };
 
 exports.FLOAT = {
@@ -111,7 +133,39 @@ exports.FLOAT = {
     return `FST ${dst}`;
   },
 
+  saveValue({ body, regs }) {
+    if (!regs.length) return;
+    let names = [];
+
+    for (let i in regs) {
+      // Save value from others stack regs by copping them into st(0)
+      // And it will be copied only if regs >= 2 ...
+      if (Number(i) && i <= this.commands.stackIndex) body.push(`FLD st(${i})`);
+
+      let name = this.commands.createValue.call(this, {});
+      body.push(`FST ${name}`);
+      names.push(name);
+    }
+
+    body.push("; Clean FPU Stack");
+    body.push("FINIT");
+
+    return names;
+  },
+
+  restoreValue({ body, names, createValue }) {
+    body.push("; Clean FPU Stack");
+    body.push("FINIT");
+
+    if (names) for (let name of names.reverse()) body.push(`FLD ${name}`);
+    return createValue();
+  },
+
   neg: () => "FCHS",
+
+  setVar({ var: v, value }, src) {
+    return [`MOV ${value},\ ${src}`, `MOV ${v},\ ${value}`];
+  },
 };
 
 exports.STR = {
@@ -132,11 +186,30 @@ exports.STR = {
     return dst ? `LEA\ ${dst},\ ${name}` : `${prefix}${name}`;
   },
 
-  swap() {},
+  swap(body, { src, dst }) {
+    body.push(`MOV ${dst}, ${src}`);
+  },
 
   setValue({ dst, src }) {
     return `MOV ${dst}, ${src}`;
   },
 
+  saveValue({ body, regs }) {
+    if (!regs.length) return;
+
+    for (let reg of regs) body.push(`PUSH ${reg}`);
+  },
+
+  restoreValue({ body, regs, dst }) {
+    if ((dst.value || dst) != "EAX") this.commands.swap(body, { src: "EAX", dst: dst.value || dst });
+    if (!regs.length) return;
+
+    for (let reg of regs.reverse()) body.push(`POP ${reg}`);
+  },
+
   unaryOperation() {},
+
+  setVar({ var: v, value }) {
+    return [`MOV ${v}, ${value}`];
+  },
 };
