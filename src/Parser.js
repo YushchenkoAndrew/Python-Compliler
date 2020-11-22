@@ -210,7 +210,7 @@ class Parser {
   getDefinedTokenArray(types, key, value, defined) {
     for (var type of types) {
       var index = defined.map((obj) => obj[type] && obj[type][key]).lastIndexOf(value);
-      if (index != -1) break;
+      if (index != -1 && defined[index][type].type != "FUNC_CALL") break;
     }
 
     // If the variables is not defined then throw an Error
