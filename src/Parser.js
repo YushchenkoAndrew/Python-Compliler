@@ -1,4 +1,5 @@
 var { changeToken } = module.require("./Lexing");
+var basicFunc = module.require("./BasicFunc.json");
 
 class Parser {
   constructor(tokens) {
@@ -43,8 +44,8 @@ class Parser {
     return this.syntaxTree;
   }
 
-  errorMessageHandler(message, { char = this.tokens[this.line][this.index - 1].char }) {
-    throw Error(`${message}. Error in line ${this.line + 1}, col ${char}`);
+  errorMessageHandler(message, { line = this.line, char = -1 }) {
+    throw Error(`${message}. Error in line ${line + 1}, col ${char + 1}`);
   }
 
   initStateMachine(level = 0, forcedBlock = false) {
@@ -134,6 +135,52 @@ class Parser {
         checkLevel.call(this, level, forcedBlock);
         return level;
 
+      case "FOR":
+      case "WHILE":
+        console.log(`WHILE:    LEVEL ${level}`, this.tokens[this.line][this.index]);
+
+        if (!checkLevel.call(this, level, forcedBlock)) return level;
+        this.index++;
+        this.currLevel.level++;
+        this.currLevel.body.push({ Statement: type.includes("WHILE") ? this.parseWhile() : this.parseFor() });
+
+        // Save previous data
+        let header = JSON.parse(JSON.stringify(this.currLevel.header));
+        let body = JSON.parse(JSON.stringify(this.currLevel.body));
+
+        // Put created upper head variables in header
+        this.currLevel.header.push(...body);
+        this.currLevel.body = [];
+
+        // Get a next level, because of the recursion I could not save
+        // the moment where "jump" is happening so I just return the level
+        // (this "jump")
+        level = this.initStateMachine(level + 1, true);
+        body.slice(-1)[0].Statement.body = this.currLevel.body;
+
+        this.currLevel.level--;
+        this.currLevel.header = [...header, ...JSON.parse(JSON.stringify([...this.currLevel.body, ...this.currLevel.header]))];
+        this.currLevel.body = body;
+        break;
+
+      case "Continue":
+      case "Break":
+        console.log(`BREAK:    LEVEL ${level}`, this.tokens[this.line][this.index]);
+
+        if (!checkLevel.call(this, level, forcedBlock)) return level;
+        this.index++;
+
+        // Get the last loop
+        let loop = this.getDefinedToken("Statement", "type", "WHILE", this.currLevel, false);
+        loop = loop && !loop.body ? loop : this.getDefinedToken("Statement", "type", "FOR", this.currLevel, false);
+
+        // Check if received loop even exist if so check if
+        // We still working with it, if not the throw an error
+        if (!loop || loop.body) this.errorMessageHandler(`${type.split(/\ /)[0]} outside of the loop`, this.tokens[this.line][this.index - 1]);
+
+        this.currLevel.body.push({ Statement: { type: type.split(/\ /)[0].toUpperCase() } });
+        break;
+
       case "Pass":
       case "Return":
         console.log(`RETURN:   LEVEL ${level}`, this.tokens[this.line][this.index]);
@@ -217,6 +264,12 @@ class Parser {
     if (index == -1) this.errorMessageHandler(`Variable ${value} is not defined`, this.tokens[this.line][this.index - 1]);
 
     return defined[index][type];
+  }
+
+  checkOnBasicFunc(name) {
+    for (let func in basicFunc) if (name == func) return basicFunc[func];
+
+    return;
   }
 
   getTree() {

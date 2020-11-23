@@ -100,6 +100,34 @@ function parseElse(level, body) {
   return level;
 }
 
+function parseWhile() {
+  // Delete all spaces
+  this.tokens[this.line].push(...this.tokens[this.line].splice(this.index).filter((token) => token.type != "Space"));
+  this.stateChecker("type", this.tokens[this.line][this.index], "Wrong While loop declaration", "Variable", "Number", "String", "Unary", "Parentheses");
+  let exp = this.parseExpression({});
+  this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong While loop declaration", "Start Block");
+  return { type: "WHILE", Expression: exp, defined: this.type.curr };
+}
+
+function parseFor() {
+  // Delete all spaces
+  this.tokens[this.line].push(...this.tokens[this.line].splice(this.index).filter((token) => token.type != "Space"));
+  this.stateChecker("type", this.tokens[this.line][this.index], "Wrong For loop declaration", "Variable");
+  let { value } = this.tokens[this.line][this.index++];
+  this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong For loop declaration", "IN Keyword");
+  this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong For loop declaration", "Variable");
+  let arr = this.parseVariable();
+
+  // TODO: Continue creating for loop
+
+  this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong For loop declaration", "Start Block");
+
+  console.log("nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn");
+  console.log(arr);
+
+  return { type: "FOR", iter: `_${value}` };
+}
+
 function parseReturn() {
   // Delete all spaces
   this.tokens[this.line].push(...this.tokens[this.line].splice(this.index).filter((token) => token.type != "Space"));
@@ -179,7 +207,7 @@ function getArgs(params) {
 function parseFuncCaller() {
   let { value } = this.tokens[this.line][this.index++ - 1];
 
-  let { params, defined } = this.getDefinedToken("Declaration", "name", `_${value}`, this.currLevel);
+  let { params, defined } = this.checkOnBasicFunc(value) || this.getDefinedToken("Declaration", "name", `_${value}`, this.currLevel);
   return { type: "FUNC_CALL", name: `_${value}`, params: this.getArgs(params), defined: defined };
 }
 
@@ -190,6 +218,8 @@ exports.parseVariable = parseVariable;
 exports.parseVariableAssign = parseVariableAssign;
 exports.parseIf = parseIf;
 exports.parseElse = parseElse;
+exports.parseWhile = parseWhile;
+exports.parseFor = parseFor;
 exports.getParams = getParams;
 exports.getArgs = getArgs;
 exports.stateChecker = stateChecker;
