@@ -10,10 +10,16 @@ includelib \\masm32\\lib\\masm32.lib
 include \\masm32\\include\\user32.inc
 includelib \\masm32\\lib\\user32.lib
 
+; Default Functions
 NumToStr PROTO :DWORD,:DWORD
 FloatToStr_ PROTO :DWORD,:DWORD
 AddSTR PROTO :DWORD,:DWORD,:DWORD
 CompareSTR PROTO :DWORD,:DWORD
+Range1 PROTO :DWORD,:DWORD
+Range2 PROTO :DWORD,:DWORD,:DWORD
+Range3 PROTO :DWORD,:DWORD,:DWORD,:DWORD
+
+; Created Functions
 $HEADER
 
 .const
@@ -193,6 +199,45 @@ CompareSTR PROC uses ESI STR1:DWORD, STR2:DWORD
 	POP EBX
 	RET
 CompareSTR ENDP
+
+
+Range1 PROC uses ESI FINISH:DWORD, ARR:DWORD
+	MOV EAX, ARR
+	XOR ECX, ECX
+@L1:
+	MOV [EAX + ECX * 4], ECX
+	INC ECX
+	CMP ECX, FINISH
+	JL @L1
+	RET
+Range1 ENDP
+
+Range2 PROC uses ESI START:DWORD, FINISH:DWORD, ARR:DWORD
+	MOV EAX, ARR
+	XOR ECX, ECX
+	MOV EBX, START
+@L1:
+	MOV [EAX + ECX * 4], EBX
+	INC ECX
+	INC EBX
+	CMP EBX, FINISH
+	JL @L1
+	RET
+Range2 ENDP
+
+
+Range3 PROC uses ESI START:DWORD, FINISH:DWORD, STEP:DWORD, ARR:DWORD
+	MOV EAX, ARR
+	XOR ECX, ECX
+	MOV EBX, START
+@L1:
+	MOV [EAX + ECX * 4], EBX
+	INC ECX
+	ADD EBX, STEP
+	CMP EBX, FINISH
+	JL @L1
+	RET
+Range3 ENDP
 
 ; User Functions
 $FUNC
