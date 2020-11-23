@@ -1,0 +1,6 @@
+{
+  "range": {
+    "params": [{ "defined": { "type": "INT" } }],
+    "defined": {}
+  }
+}
