@@ -8,6 +8,7 @@ I created this repo for project's version control, and for saving my current pro
   - [x] INT
   - [x] STRING
   - [x] FLOAT
+  - [ ] LIST
 - [x] Number Bases
   - [x] BIN
   - [x] OCT
@@ -54,5 +55,7 @@ I created this repo for project's version control, and for saving my current pro
   - [ ] Assembler (ARM) Code Generator
 - [x] Variable assignment
 - [x] If statement
-- [ ] Function handler
+- [x] Function handler
+- [ ] For Loop
+- [ ] While Loop
 - [ ] Unit test
