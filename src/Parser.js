@@ -71,7 +71,7 @@ class Parser {
 
         // TODO: Not the best solution, have some issues
         // Put created upper head variables in header
-        this.currLevel.header.push(...this.currLevel.body, ...body.slice(-1)[0].Declaration.params.map((param) => ({ Statement: param })));
+        this.currLevel.header.push(...header, ...this.currLevel.body, ...body.slice(-1)[0].Declaration.params.map((param) => ({ Statement: param })));
         this.currLevel.body = [];
 
         // Get a next level, because of the recursion I could not save
@@ -121,7 +121,7 @@ class Parser {
         // When I put assignment Statement into a header that means that it was defined before
         // the function which is not true, so I need to reconsider it in the future, or not
         this.currLevel.level--;
-        this.currLevel.header = [...header, ...JSON.parse(JSON.stringify([...this.currLevel.body, ...this.currLevel.header]))];
+        this.currLevel.header = [...header, ...JSON.parse(JSON.stringify([...this.currLevel.body]))];
         this.currLevel.body = body;
 
         // Check if it was the else-if statement, if so then go back to
@@ -158,9 +158,14 @@ class Parser {
         level = this.initStateMachine(level + 1, true);
         body.slice(-1)[0].Statement.body = this.currLevel.body;
 
+        console.dir(this.currLevel, { depth: null });
         this.currLevel.level--;
-        this.currLevel.header = [...header, ...JSON.parse(JSON.stringify([...this.currLevel.body, ...this.currLevel.header]))];
+        this.currLevel.header = [...header, ...JSON.parse(JSON.stringify([...this.currLevel.body]))];
         this.currLevel.body = body;
+
+        console.log("-----------------");
+        console.dir(this.currLevel, { depth: null });
+
         break;
 
       case "Continue":
@@ -187,6 +192,9 @@ class Parser {
 
         if (!checkLevel.call(this, level, forcedBlock)) return level;
         this.index++;
+
+        console.dir(this.currLevel, { depth: null });
+
         this.currLevel.body.push({ Statement: this.parseReturn() });
         break;
 
@@ -267,7 +275,7 @@ class Parser {
   }
 
   checkOnBasicFunc(name) {
-    for (let func in basicFunc) if (name == func) return basicFunc[func];
+    for (let func in basicFunc) if (name == func) return { ...basicFunc[func], basic: true };
 
     return;
   }
