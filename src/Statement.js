@@ -104,6 +104,7 @@ function parseWhile() {
   // Delete all spaces
   this.tokens[this.line].push(...this.tokens[this.line].splice(this.index).filter((token) => token.type != "Space"));
   this.stateChecker("type", this.tokens[this.line][this.index], "Wrong While loop declaration", "Variable", "Number", "String", "Unary", "Parentheses");
+
   let exp = this.parseExpression({});
   this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong While loop declaration", "Start Block");
   return { type: "WHILE", Expression: exp, defined: this.type.curr };
@@ -113,19 +114,14 @@ function parseFor() {
   // Delete all spaces
   this.tokens[this.line].push(...this.tokens[this.line].splice(this.index).filter((token) => token.type != "Space"));
   this.stateChecker("type", this.tokens[this.line][this.index], "Wrong For loop declaration", "Variable");
+
   let { value } = this.tokens[this.line][this.index++];
   this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong For loop declaration", "IN Keyword");
   this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong For loop declaration", "Variable");
-  let arr = this.parseVariable();
 
-  // TODO: Continue creating for loop
-
+  let range = this.parseVariable();
   this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong For loop declaration", "Start Block");
-
-  console.log("nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn");
-  console.log(arr);
-
-  return { type: "FOR", iter: `_${value}` };
+  return { type: "FOR", iter: `_${value}`, range: range };
 }
 
 function parseReturn() {
@@ -207,8 +203,12 @@ function getArgs(params) {
 function parseFuncCaller() {
   let { value } = this.tokens[this.line][this.index++ - 1];
 
-  let { params, defined } = this.checkOnBasicFunc(value) || this.getDefinedToken("Declaration", "name", `_${value}`, this.currLevel);
-  return { type: "FUNC_CALL", name: `_${value}`, params: this.getArgs(params), defined: defined };
+  // TODO: To improve function name, they should contain a number at the end
+  // which will tell the amount of params/args
+
+  let { params, defined, basic } = this.checkOnBasicFunc(value) || this.getDefinedToken("Declaration", "name", `_${value}`, this.currLevel);
+  let args = this.getArgs(params);
+  return { type: "FUNC_CALL", name: basic ? `${value.toUpperCase()}${args.length}` : `_${value}`, params: args, defined: defined };
 }
 
 exports.parseFunc = parseFunc;
