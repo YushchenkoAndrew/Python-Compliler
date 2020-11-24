@@ -1,6 +1,6 @@
 {
   "range": {
-    "params": [{ "defined": { "type": "INT" } }],
-    "defined": {}
+    "params": [{ "defined": { "type": "INT", "kind": 10 } }, { "defined": { "type": "INT", "kind": 10 } }, { "defined": { "type": "INT", "kind": 10 } }],
+    "defined": { "type": "LIST", "length": 20 }
   }
 }
