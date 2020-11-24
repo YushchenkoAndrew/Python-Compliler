@@ -158,14 +158,9 @@ class Parser {
         level = this.initStateMachine(level + 1, true);
         body.slice(-1)[0].Statement.body = this.currLevel.body;
 
-        console.dir(this.currLevel, { depth: null });
         this.currLevel.level--;
         this.currLevel.header = [...header, ...JSON.parse(JSON.stringify([...this.currLevel.body]))];
         this.currLevel.body = body;
-
-        console.log("-----------------");
-        console.dir(this.currLevel, { depth: null });
-
         break;
 
       case "Continue":
