@@ -1,5 +1,5 @@
 // exception is an array of command that need two or more line for realization its logic
-var exception = ["-", "/", "%", "<<", ">>", "==", ">=", "<=", ">", "<", "or", "and"];
+var exception = ["-", "/", "%", "<<", ">>", "==", "!=", ">=", "<=", ">", "<", "or", "and"];
 
 exports.INT = {
   // Allowed operations Symbols and it synonym for Assembler
@@ -14,6 +14,7 @@ exports.INT = {
   "<<": "SAL",
   ">>": "SAR",
   "==": "SETE ",
+  "!=": "SETNE ",
   ">": "SETG ",
   "<": "SETL ",
   ">=": "SETGE ",

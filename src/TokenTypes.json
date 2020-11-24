@@ -25,6 +25,7 @@
   "<<": " Operator Bitwise Left",
 
   "==": " Operator Equal To",
+  "!=": " Operator Not Equal To",
   ">": " Operator More Than",
   ">=": " Operator More Than or Equal",
   "<": " Operator Less Than",
