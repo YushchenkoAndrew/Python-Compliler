@@ -120,7 +120,13 @@ function parseFor() {
   this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong For loop declaration", "Variable");
 
   let range = this.parseVariable();
+
+  // Check on LIST type
+  this.stateChecker("type", range.defined, `${range.defined.type} Object is Not Iterable`, "LIST");
   this.stateChecker("type", this.tokens[this.line][this.index++], "Wrong For loop declaration", "Start Block");
+
+  // Create a {{value}} as a temporary variable that contain nothing
+  this.currLevel.header.push({ Statement: { type: "VAR", name: `_${value}`, defined: range.defined.defined } });
   return { type: "FOR", iter: `_${value}`, range: range };
 }
 
@@ -206,9 +212,9 @@ function parseFuncCaller() {
   // TODO: To improve function name, they should contain a number at the end
   // which will tell the amount of params/args
 
-  let { params, defined, basic } = this.checkOnBasicFunc(value) || this.getDefinedToken("Declaration", "name", `_${value}`, this.currLevel);
+  let { params, defined, basic, require = [] } = this.checkOnBasicFunc(value) || this.getDefinedToken("Declaration", "name", `_${value}`, this.currLevel);
   let args = this.getArgs(params);
-  return { type: "FUNC_CALL", name: basic ? `${value.toUpperCase()}${args.length}` : `_${value}`, params: args, defined: defined };
+  return { type: "FUNC_CALL", name: basic ? `${value.toUpperCase()}${args.length}` : `_${value}`, params: [...args, ...require], defined: defined };
 }
 
 exports.parseFunc = parseFunc;

@@ -187,9 +187,6 @@ class Parser {
 
         if (!checkLevel.call(this, level, forcedBlock)) return level;
         this.index++;
-
-        console.dir(this.currLevel, { depth: null });
-
         this.currLevel.body.push({ Statement: this.parseReturn() });
         break;
 

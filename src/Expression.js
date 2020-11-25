@@ -149,7 +149,11 @@ function parseExpression({ params = {}, priority }) {
   }
 
   function updateBranch(branch, data) {
-    data = copyTree(data);
+    // FIXME: Bug with coping, example a % 2 == 0 it will
+    // create a strange tree where it'll check '==' twice
+
+    // data = copyTree(data);
+    data = JSON.parse(JSON.stringify(data));
 
     if (branch.exp) {
       delete branch.exp;
