@@ -214,3 +214,35 @@ exports.STR = {
     return [`MOV ${v}, ${value}`];
   },
 };
+
+exports.LIST = {
+  createCommand() {},
+
+  createValue({ src, prefix = "", dst = "" }) {
+    // Check if str is not empty but if so then return a zero
+    if (!src.length) return dst ? `MOV\ ${dst},\ 00H` : "00H";
+
+    // This simply create a local variable is demand of
+    // And return the name of created variable
+    let name = `LOCAL${this.globalCount++}`;
+    let value = src.value ? src.value.join(", ") : `${src.length}\ dup(?)`;
+    this.code.data.push(`${name}\ dd\ ${value},\ 0`);
+    return dst ? `LEA\ ${dst},\ ${name}` : `${prefix}${name}`;
+  },
+
+  swap() {},
+
+  setValue({ dst, src }) {
+    return `MOV ${dst}, ${src}`;
+  },
+
+  saveValue() {},
+
+  restoreValue() {},
+
+  unaryOperation() {},
+
+  setVar({ var: v, value }) {
+    return [`MOV ${v}, ${value}`];
+  },
+};
