@@ -126,6 +126,7 @@ function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
     // So I need create better solution to this for covering all sort of possibilities
     // TODO: This problem may solve the solution above, If some day I would decide to do it
     case "==":
+    case "!=":
     case ">":
     case "<":
     case ">=":
@@ -246,6 +247,18 @@ function assignValue(body, { dst, src }, params = {}) {
       if (dst.var) body.push(...this.masmCommands.FLOAT.setVar(dst, src));
       else body.push(`FLD ${src}`);
 
+      break;
+
+    // TODO: Merge together STR and LIST
+    case "LIST":
+      console.log(src);
+
+      // Initialize LIST as a GLOBAL variable in ASM
+      body.push(this.masmCommands.LIST.createValue.call(this, { src: src, dst: dst.value || dst }));
+
+      // If dst is a LOCAL variable after all, then mov
+      // defined address from reg (reg_name = dst.value) to LOCAL variable
+      if (dst.var) body.push(...this.masmCommands.LIST.setVar(dst));
       break;
 
     // TODO: Solve problem with FDIV
