@@ -15,7 +15,7 @@ class Generator {
     this.func = { header: [], body: [] };
 
     this.globalCount = 0;
-    this.labelCount = 0;
+    this.labels = { condition: 0, loop: 0 };
     this.allocateFreeSpace = 0;
     this.forcedType = undefined;
     this.masmCommands = require("./MasmCommands");
@@ -64,7 +64,7 @@ class Generator {
         this.code.header.push(`${tree.name} PROTO\ ` + tree.params.map((arg) => ":DWORD").join(","));
         this.func.header.push(`${tree.name} PROC\ ` + tree.params.map((arg) => `${arg.name}:DWORD`).join(","));
 
-        this.labelCount = 0;
+        this.labels = { condition: 0, loop: 0 };
         this.parseBody(tree.body, { func: tree.name });
         this.createPROC(tree.name);
         break;
@@ -77,8 +77,6 @@ class Generator {
           case "VAR":
             this.redirect("Expression", tree.Expression, { value: tree.name, defined: tree.defined, ...params });
 
-            // FIXME: Some bug with local and variable that sended
-
             // We're certain that we declare new variable by another variable
             // There for we need to check if this is our first time or not
             if (this.isInclude(this.func.header, "PROC") && !this.isInclude(this.func.header, `LOCAL\ ${tree.name}:`, `PROC\ ${tree.name}`, `${tree.name}:`)) {
@@ -90,6 +88,7 @@ class Generator {
             // Create a bool return (00H or 01H) if type is not equal to INT
             this.forcedType = this.isInclude(tree.Expression.value, "==", "not") && tree.type != "INT" ? { type: "INT", kind: 10 } : 0;
             this.redirect("Expression", tree.Expression, { type: tree.type, defined: tree.defined, ...params });
+            this.func.body.push("JMP @ENDP");
             break;
 
           case "FUNC_CALL":
@@ -104,10 +103,27 @@ class Generator {
 
           case "IF":
             // this.func.body.push("");
-            this.func.body.push(`; IF Statement ${this.labelCount}`);
+            this.func.body.push(`; IF Statement ${this.labels.condition}`);
             this.redirect("Expression", tree.Expression, { value: tree.name, defined: tree.defined, ...params });
             this.func.body.push("CMP EAX, 00H");
-            this.createIfDistribution(tree, params, this.labelCount++);
+            this.createIfDistribution(tree, params, this.labels.condition++);
+            break;
+
+          case "WHILE":
+            this.func.body.push(`; WHILE LOOP ${this.labels.loop}`);
+            this.createWhileDistribution(tree, params);
+            break;
+
+          case "FOR":
+            this.func.body.push(`; FOR LOOP ${this.labels.loop}`);
+            this.createForDistribution(tree, params);
+            break;
+
+          case "CONTINUE":
+          case "BREAK":
+            this.func.body.push("");
+            this.func.body.push(`; ${type}`);
+            this.func.body.push(`JMP @${type == "BREAK" ? "END" : "LOOP"}${this.labels.loop}`);
             break;
         }
 
@@ -153,8 +169,14 @@ class Generator {
     }
   }
 
+  createGlobal() {
+    let name = `LOCAL${this.globalCount++}`;
+    this.code.data.push(`${name} dd ?`);
+    return name;
+  }
+
   createPROC(name) {
-    this.code.func.push(this.func.header.join("\n\t") + "\n\t" + this.func.body.join("\n\t") + "\n\tRET" + `\n${name} ENDP`);
+    this.code.func.push(this.func.header.join("\n\t") + "\n\t" + this.func.body.join("\n\t") + "\n@ENDP:" + "\n\tRET" + `\n${name} ENDP`);
     this.func = { header: [], body: [] };
   }
 
@@ -174,6 +196,62 @@ class Generator {
     // Parse Else Statements
     this.parseBody(tree.else, params);
     this.func.body.push(`\r@ENDIF${label}:`);
+  }
+
+  createWhileDistribution(tree, params) {
+    // Create a condition
+    this.func.body.push(`\r@LOOP${this.labels.loop}:`);
+    this.redirect("Expression", tree.Expression, { value: tree.name, defined: tree.defined, ...params });
+    this.func.body.push("CMP EAX, 00H");
+
+    // If condition equal to false then it'll exit the loop
+    this.func.body.push(`JE @END${this.labels.loop}`);
+
+    // Body of the while loop
+    this.parseBody(tree.body, params);
+
+    this.func.body.push(`JMP @LOOP${this.labels.loop}`);
+    this.func.body.push(`\r@END${this.labels.loop++}:`);
+  }
+
+  createForDistribution(tree, params) {
+    // We're certain that we declare new variable by another variable
+    // There for we need to check if this is our first time or not
+    if (this.isInclude(this.func.header, "PROC") && !this.isInclude(this.func.header, `LOCAL\ ${tree.iter}:`, `PROC\ ${tree.iter}`, `${tree.iter}:`))
+      this.func.header.push(`LOCAL\ ${tree.iter}:DWORD`);
+
+    this.redirect("Statement", tree.range, params);
+
+    // FIXME: list and size created only by taking in count
+    // the range func, need to improve this !!!
+
+    let list = this.createGlobal();
+    let size = this.createGlobal();
+
+    this.func.body.push(`MOV\ ${list}, EAX`);
+    this.func.body.push(`MOV\ ${size}, ECX`);
+
+    // The basic state in for loop => "for (int i = 0; ...)"
+    this.func.body.push(`PUSH 00H`);
+    let reg = this.regs.available[0];
+
+    // Header of the FOR LOOP
+    this.func.body.push(`\r@LOOP${this.labels.loop}:`);
+    this.func.body.push(`POP ECX`);
+    this.func.body.push(`MOV EAX,\ ${list}`);
+    this.func.body.push(`MOV\ ${reg},\ [EAX + 4 * ECX]`);
+    this.func.body.push(`MOV\ ${tree.iter},\ ${reg}`);
+    this.func.body.push(`INC ECX`);
+    this.func.body.push(`CMP ECX, ${size}`);
+    this.func.body.push(`JG @END${this.labels.loop}`);
+    this.func.body.push(`PUSH ECX`);
+    this.func.body.push("");
+
+    // Body of the FOR LOOP
+    this.parseBody(tree.body, params);
+
+    this.func.body.push(`JMP @LOOP${this.labels.loop}`);
+    this.func.body.push(`\r@END${this.labels.loop++}:`);
   }
 
   parseFuncParams(args, params) {
