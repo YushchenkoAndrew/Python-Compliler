@@ -14,9 +14,9 @@ I created this repo for project's version control, and for saving my current pro
   - [x] OCT
   - [x] DEC
   - [x] HEX
-- [ ] Binary Operations (INT)
+- [x] Binary Operations (INT)
   - [x] Addition
-  - [ ] Subtraction
+  - [x] Subtraction
   - [x] Multiplication
   - [x] Division
   - [x] Remainder of a Division
@@ -33,7 +33,7 @@ I created this repo for project's version control, and for saving my current pro
   - [x] Bitwise 'SHIFT LEFT'
 - [ ] Binary Operation (FLOAT)
   - [x] Addition
-  - [ ] Subtraction
+  - [x] Subtraction
   - [x] Multiplication
   - [x] Division
   - [ ] Logical 'OR'
@@ -49,6 +49,9 @@ I created this repo for project's version control, and for saving my current pro
   - [x] Negation
   - [x] Logical negation
   - [x] Bitwise complement
+- [ ] Basic Functions
+  - [x] range
+  - [ ] print
 - [ ] Code Generator
   - [x] MASM32 Code Generator
   - [ ] C Code Generator
@@ -57,5 +60,5 @@ I created this repo for project's version control, and for saving my current pro
 - [x] If statement
 - [x] Function handler
 - [ ] For Loop
-- [ ] While Loop
+- [x] While Loop
 - [ ] Unit test
