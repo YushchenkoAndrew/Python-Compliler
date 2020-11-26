@@ -10,22 +10,23 @@
   "Module Operator": 4,
 
   "Neg Operator": 5,
-  "Add Operator": 6,
+  "Add Operator": 5,
 
-  " Operator Bitwise Right": 7,
-  " Operator Bitwise Left": 7,
+  " Operator Bitwise Right": 6,
+  " Operator Bitwise Left": 6,
 
-  "AND Operator Bitwise": 8,
-  "XOR Operator Bitwise": 9,
-  "OR Operator Bitwise": 10,
+  "AND Operator Bitwise": 7,
+  "XOR Operator Bitwise": 8,
+  "OR Operator Bitwise": 9,
 
-  " Operator Equal To": 11,
-  " Operator More Than": 11,
-  " Operator More Than or Equal": 11,
-  " Operator Less Than": 11,
-  " Operator Less Than or Equal": 11,
+  " Operator Equal To": 10,
+  " Operator Not Equal To": 10,
+  " Operator More Than": 10,
+  " Operator More Than or Equal": 10,
+  " Operator Less Than": 10,
+  " Operator Less Than or Equal": 10,
 
-  "LogicNeg Unary Operator Keyword": 12,
-  "AND Operator Keyword": 13,
-  "OR Operator Keyword": 14
+  "LogicNeg Unary Operator Keyword": 11,
+  "AND Operator Keyword": 12,
+  "OR Operator Keyword": 13
 }

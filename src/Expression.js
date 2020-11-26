@@ -33,7 +33,7 @@ function parseExpression({ params = {}, priority }) {
       // Change value of this.neg to unary because after a number can be only
       // a binary operation
       this.neg = "Binary";
-      let varType = this.getDefinedToken(["Statement", "Declaration"], "name", `_${value}`, this.currLevel);
+      let varType = this.checkOnBasicFunc(value) || this.getDefinedToken(["Statement", "Declaration"], "name", `_${value}`, this.currLevel);
 
       // Create Expression that depends on type, if it FUNC then call parserFuncCaller
       varType = varType.type == "FUNC" ? this.parseFuncCaller() : { value: `_${value}`, type: "VAR", defined: varType.defined };
@@ -93,6 +93,11 @@ function parseExpression({ params = {}, priority }) {
 
       // 1 * 2 + 3
       if (priority - currPriority <= 0) {
+        // The main idea here, it's to dynamically change prev priority
+        // if it was too high, this approach helps to build new branch
+        // on top of another if they've had the same priority
+        priority = branch?.priority <= currPriority ? branch.priority : priority;
+
         if (branch && priority != currPriority)
           branch[key] = { type: "Binary Operation", value: operator, left: branch[key], right: right, priority: currPriority };
         else {
@@ -106,7 +111,6 @@ function parseExpression({ params = {}, priority }) {
       return this.parseExpression({ priority: currPriority });
     }
 
-    // TODO: Create something that will check if all Parentheses is closed
     case "Parentheses": {
       if (this.parentheses || !type.includes("Close")) this.index++;
       let right = undefined;
