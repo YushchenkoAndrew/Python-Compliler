@@ -1,5 +1,7 @@
 {
   "range": {
+    "type": "FUNC",
+    "name": "range",
     "params": [{ "defined": { "type": "INT", "kind": 10 } }, { "defined": { "type": "INT", "kind": 10 } }, { "defined": { "type": "INT", "kind": 10 } }],
     "require": [
       { "type": "NONE", "Expression": { "type": "LIST", "length": 20 }, "defined": { "type": "LIST", "length": 20, "defined": { "type": "INT", "kind": 10 } } }
