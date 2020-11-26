@@ -71,7 +71,7 @@ exports.FLOAT = {
   // TODO: Implement Logic Operations such as "OR", "AND", "==", ">", "<"...
   // This method should be called like a part of CodeGenerator Class
   createCommand({ value }) {
-    return ({ value }, body, { src }) => {
+    return ({ value }, body, { src, dir = 1 }) => {
       // Get the name of GLOBAL variable that contain src value, or return src if it's a reg
       src = src.value ? this.masmCommands.FLOAT.createValue.call(this, { src: src }) : src;
 
@@ -82,6 +82,7 @@ exports.FLOAT = {
       //  calculated Result
       if (this.isEqual(src, "EAX", "EBX", "ECX", "EDX") || !src) body.push(`${this.commands[value]}st(0), st(${this.commands.stackIndex++})`);
       else body.push(`${this.commands[value]}${src}`);
+      if (value == "-" && dir == -1) body.push("FCHS");
     };
   },
 

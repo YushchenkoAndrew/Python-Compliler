@@ -19,7 +19,7 @@ function parseExpression(tree, params = {}) {
     // Next right value is Operation and the left is Constant
     case 2:
       this.parseExpression(tree.right, params);
-      analyzeParams.call(this, "src", tree, body, { src: tree.left });
+      analyzeParams.call(this, "src", tree, body, { src: tree.left, dir: -1 });
       break;
 
     // Both left and right are Operations
@@ -37,7 +37,7 @@ function parseExpression(tree, params = {}) {
         // Store current progress in the reg
         this.assignValue(body, { src: "EAX", dst: reg });
         this.parseExpression(tree.right, params);
-        this.createCommand(tree)(tree, body, { src: reg, dst: "EAX" });
+        this.createCommand(tree)(tree, body, { src: reg, dst: "EAX", dir: -1 });
 
         this.regs.available.push(this.regs.inUse.pop());
         break;
@@ -73,15 +73,14 @@ function parseExpression(tree, params = {}) {
 
 // TODO: To improve this function to receiving prev (dst) not like a simple str value
 // but as an Object for better future analyzing which proc should I use...
-function binaryOperation({ value }, body, { src = 0, dst = "EAX" }) {
+function binaryOperation({ value }, body, { src = 0, dst = "EAX", dir = 1 }) {
   src = src.value !== undefined ? src.value : src;
   dst = dst.value !== undefined ? dst.value : dst;
 
   switch (value) {
     case "-":
-      //     //   this.proc.body.push(`SUB ${regs[0]}, ${regs[1]}`);
-      //     //   this.proc.body.push(`PUSH ${regs[0]}`);
-      //     //   break;
+      this.func.body.push(`SUB\ ${dst},\ ${src}`);
+      if (dir == -1) this.func.body.push(`NEG\ ${dst}`);
       break;
 
     case "%":
