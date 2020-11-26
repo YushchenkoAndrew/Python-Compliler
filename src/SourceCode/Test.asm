@@ -10,12 +10,17 @@ includelib \masm32\lib\masm32.lib
 include \masm32\include\user32.inc
 includelib \masm32\lib\user32.lib
 
+; Default Functions
 NumToStr PROTO :DWORD,:DWORD
 FloatToStr_ PROTO :DWORD,:DWORD
 AddSTR PROTO :DWORD,:DWORD,:DWORD
 CompareSTR PROTO :DWORD,:DWORD
-_sum PROTO :DWORD,:DWORD
-_pow2 PROTO :DWORD
+RANGE1 PROTO :DWORD,:DWORD
+RANGE2 PROTO :DWORD,:DWORD,:DWORD
+RANGE3 PROTO :DWORD,:DWORD,:DWORD,:DWORD
+
+; Created Functions
+_test PROTO 
 _main PROTO 
 
 .const
@@ -28,7 +33,15 @@ Output db 20 dup(?), 0
 OutFloat db 20 dup(?), 0
 
 ; Created Variables
-LOCAL0 dd ?
+LOCAL0 dd 5.
+LOCAL1 dd 2.
+LOCAL2 dd 50.1
+LOCAL3 dd 1.
+LOCAL4 dd 2.
+LOCAL5 dd 5.
+LOCAL6 dd 1.
+LOCAL7 dd 6.
+LOCAL8 dd 3.
 
 .code
 NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
@@ -196,37 +209,84 @@ CompareSTR PROC uses ESI STR1:DWORD, STR2:DWORD
 	RET
 CompareSTR ENDP
 
-; User Functions
-_sum PROC _a:DWORD,_b:DWORD
-	MOV EAX, _a
-	ADD EAX, _b
-	RET
-_sum ENDP
 
-_pow2 PROC _a:DWORD
-	MOV EAX, _a
-	IMUL EAX, _a
+RANGE1 PROC uses ESI FINISH:DWORD, ARR:DWORD
+	MOV EAX, ARR
+	XOR ECX, ECX
+@L1:
+	MOV [EAX + ECX * 4], ECX
+	INC ECX
+	CMP ECX, FINISH
+	JL @L1
 	RET
-_pow2 ENDP
+RANGE1 ENDP
+
+RANGE2 PROC uses ESI START:DWORD, FINISH:DWORD, ARR:DWORD
+	MOV EAX, ARR
+	XOR ECX, ECX
+	MOV EBX, START
+@L1:
+	MOV [EAX + ECX * 4], EBX
+	INC ECX
+	INC EBX
+	CMP EBX, FINISH
+	JL @L1
+	RET
+RANGE2 ENDP
+
+RANGE3 PROC uses ESI START:DWORD, FINISH:DWORD, STEP:DWORD, ARR:DWORD
+	MOV EAX, ARR
+	XOR ECX, ECX
+	MOV EBX, START
+@L1:
+	MOV [EAX + ECX * 4], EBX
+	INC ECX
+	ADD EBX, STEP
+	CMP EBX, FINISH
+	JL @L1
+	RET
+RANGE3 ENDP
+
+; User Functions
+_test PROC 
+	LOCAL _a:DWORD
+	MOV _a, 1
+@ENDP:
+	RET
+_test ENDP
 
 _main PROC 
 	LOCAL _a:DWORD
-	PUSH EDX
-	PUSH EAX
-	PUSH EDX
-	PUSH EAX
-	invoke _pow2, 2
-	POP EDX
-	MOV LOCAL0, EAX
-	invoke _sum, 5, LOCAL0
-	MOV _a, EAX
-	POP EDX
-	MOV EAX, _a
+	LOCAL _b:DWORD
+	MOV _a, 1
+	MOV _b, 1
+	FLD LOCAL0
+	FMUL LOCAL1
+	FSUB LOCAL2
+	FCHS
+	FLD LOCAL3
+	FMUL LOCAL4
+	FSUB st(0), st(1)
+	FCHS
+	FLD LOCAL5
+	FMUL LOCAL6
+	FADD st(0), st(1)
+	FLD LOCAL7
+	FMUL LOCAL8
+	FSUB st(0), st(1)
+	FCHS
+	FST _b
+	MOV EAX, _b
+	JMP @ENDP
+@ENDP:
 	RET
 _main ENDP
 
 start:
 	invoke _main
+	; Clean FPU Stack
+	FINIT
+	invoke FloatToStr_, EAX, ADDR OutFloat
 	invoke MessageBoxA, 0, EAX, ADDR Caption, 0
 	invoke ExitProcess, 0
 end start

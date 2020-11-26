@@ -1,39 +1,57 @@
-def func(i, n):
-    # c = b + d
-    # c = b + 2
-    # b += 1.0000001
-    # bug:
-    # c = a + " "
-    if i >= n:
-        return i
+# def test(a):
+#     if a:
+#         return a * test(a + -1)
+#     return 1
 
-    else:
-        return i * func(i + 1, n)
-    # bug:
-    # return a +  0.0001 + b
-    # return a + b + 0.0001
-    # return a + b + ""
-
+def test():
+    a = 1
 
 def main():
-    # a = 2 + 1 * 3 ** -4 / 5 * 6
+    a = 1
 
-    # a = 1 + 2 * 3
-    # a = 1 + func(1, func(1, 2)) + 2 * a
-    a = func(1, 5) + 0
+    # while a < 10:
+    #     b = 1
+    #     a += b
 
-    # a = 1
-    # a = 1.5 + a
-    # a = func(1 + 5 / 2, 5 + 2) + 5
-    # a = func(1 + 5 / 2, 5 + 2) + 2
-    # a = func(1.5 + 5 / 2, 5 + 2) + 5
-    # bug:
-    # a = 1 + func(1, 2)
-    # a = func(1, 2) + 1
+    # test(5)
 
-    # func(1.5 + 5 / 2, 5 + 2)
-    # func(1, a)
+    # # break
+    #     continue
 
-    return a
+    b = 1
+    # a = range(5)
 
+    # TEST EXPRESSION
+    # b = 5.2 - 2 - 1 # OK
+    # b = 5.2 * 2 - 1 # OK
+    # b = 5.2 - 1 * 2 # OK
+    # b = 50.1 - 5 * 2 - 1 * 2 # OK
+    b = 50.1 - 5 * 2 - 1 * 2 + 5 * 1 - 6 * 3 # OK
+    # b = 2 + 5 * 16 / 2
+    # b = 2 + 2 * 2 - (not not 5) # OK
+    # b = 8 + -2 * 3 - ~~1 # OK
+    # b = (2 + 2) * 2 # OK
+    # b = 5 + 3 * 16 / 2 # OK
+    # b = not ((2 + 2) * -2 + (not not 5) * 16 / 2) # OK
+    # b = 1 - -(2 - 3 - -5) * ~~~2 + (not 8) * 18 # OK
+    # b = -(2 - 3 * (2 - --2 + (not 0))) / 3 + -~~~-(1 - ~~2) * 5 / ~~2 # OK
+
+
+    # for i in range(0, 10, 2):
+    # while a != 100:
+    # # if a:
+    #     # b = 1
+        # a += i
+
+    #     # if a % 2 == 0:
+    #     #     continue
+
+    #     b += 1
+    # b += 1
+
+    # a = 1.5
+
+    return b
+
+# print(main())
 main()

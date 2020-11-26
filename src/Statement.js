@@ -18,7 +18,6 @@ function getParams(...allowed) {
   return params;
 }
 
-// TODO: Create a simple default return statement or similar to this
 function parseFunc() {
   // Delete all spaces
   this.tokens[this.line].push(...this.tokens[this.line].splice(this.index).filter((token) => token.type != "Space"));
@@ -28,7 +27,7 @@ function parseFunc() {
   this.stateChecker("type", this.tokens[this.line][this.index++], "Open Parentheses are missing", "Open Parentheses");
 
   // Create type "ANY" which is mean that variable is undefined
-  // TODO: Think about do I need to create a arguments (params) as Statements ?
+  // TODO: Think about it, do I need to create arguments (params) as Statements ?
   // Complete Expression part
   let params = this.getParams("Variable").map((param) => ({ type: "VAR", name: `_${param}`, defined: { type: "ANY" } }));
 
