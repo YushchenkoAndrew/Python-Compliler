@@ -298,7 +298,7 @@ class Generator {
 
   isInclude(value, ...arr) {
     if (Array.isArray(value)) return this.isIncludeArr(value, arr);
-    for (let i in arr) if (value.includes(arr[i])) return Number(i) + 1;
+    for (let i in arr) if (value?.includes(arr[i])) return Number(i) + 1;
     return false;
   }
 

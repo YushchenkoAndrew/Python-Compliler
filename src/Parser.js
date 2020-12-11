@@ -1,5 +1,4 @@
 var { changeToken } = module.require("./Lexing");
-var basicFunc = module.require("./BasicFunc.json");
 
 class Parser {
   constructor(tokens) {
@@ -21,6 +20,7 @@ class Parser {
     };
 
     this.allowedOperations = require("./AllowedOperations.json");
+    this.basicFunc = require("./BasicFunc.json");
   }
 
   inputModule(mod) {
@@ -44,7 +44,7 @@ class Parser {
     return this.syntaxTree;
   }
 
-  errorMessageHandler(message, { line = this.line, char = -1 }) {
+  errorMessageHandler(message, { line = this.line, char = this.index }) {
     throw Error(`${message}. Error in line ${line + 1}, col ${char + 1}`);
   }
 
@@ -267,7 +267,7 @@ class Parser {
   }
 
   checkOnBasicFunc(name) {
-    for (let func in basicFunc) if (name == func) return { ...basicFunc[func], basic: true };
+    for (let func in this.basicFunc) if (name == func) return { ...this.basicFunc[func], basic: true };
 
     return;
   }

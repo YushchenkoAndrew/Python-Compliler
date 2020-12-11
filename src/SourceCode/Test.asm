@@ -20,7 +20,7 @@ RANGE2 PROTO :DWORD,:DWORD,:DWORD
 RANGE3 PROTO :DWORD,:DWORD,:DWORD,:DWORD
 
 ; Created Functions
-_test PROTO 
+_test PROTO :DWORD
 _main PROTO 
 
 .const
@@ -33,15 +33,7 @@ Output db 20 dup(?), 0
 OutFloat db 20 dup(?), 0
 
 ; Created Variables
-LOCAL0 dd 5.
-LOCAL1 dd 2.
-LOCAL2 dd 50.1
-LOCAL3 dd 1.
-LOCAL4 dd 2.
-LOCAL5 dd 5.
-LOCAL6 dd 1.
-LOCAL7 dd 6.
-LOCAL8 dd 3.
+
 
 .code
 NumToStr PROC uses ESI x:DWORD, TextBuff:DWORD
@@ -248,35 +240,36 @@ RANGE3 PROC uses ESI START:DWORD, FINISH:DWORD, STEP:DWORD, ARR:DWORD
 RANGE3 ENDP
 
 ; User Functions
-_test PROC 
-	LOCAL _a:DWORD
-	MOV _a, 1
+_test PROC _a:DWORD
+	; IF Statement 0
+	MOV EAX, _a
+	CMP EAX, 00H
+	JE @ELSE0
+	MOV EAX, 0
+	JMP @ENDP
+	@ELSE0:
+	MOV EAX, _a
+	ADD EAX, 5
+	JMP @ENDP
 @ENDP:
 	RET
 _test ENDP
 
 _main PROC 
-	LOCAL _a:DWORD
 	LOCAL _b:DWORD
-	MOV _a, 1
-	MOV _b, 1
-	FLD LOCAL0
-	FMUL LOCAL1
-	FSUB LOCAL2
-	FCHS
-	FLD LOCAL3
-	FMUL LOCAL4
-	FSUB st(0), st(1)
-	FCHS
-	FLD LOCAL5
-	FMUL LOCAL6
-	FADD st(0), st(1)
-	FLD LOCAL7
-	FMUL LOCAL8
-	FSUB st(0), st(1)
-	FCHS
-	FST _b
+	invoke _test, 5
+	MOV VALUE, 10
+	invoke NumToStr, EAX, ADDR Output
+	invoke MessageBoxA, 0, EAX, ADDR Caption, 0
+	MOV _b, 0
+	; IF Statement 0
 	MOV EAX, _b
+	CMP EAX, 00H
+	JE @ELSE0
+	MOV EAX, 1
+	JMP @ENDP
+	@ELSE0:
+	MOV EAX, 0
 	JMP @ENDP
 @ENDP:
 	RET
@@ -284,9 +277,8 @@ _main ENDP
 
 start:
 	invoke _main
-	; Clean FPU Stack
-	FINIT
-	invoke FloatToStr_, EAX, ADDR OutFloat
+	MOV VALUE, 10
+	invoke NumToStr, EAX, ADDR Output
 	invoke MessageBoxA, 0, EAX, ADDR Caption, 0
 	invoke ExitProcess, 0
 end start
